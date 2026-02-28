@@ -1,0 +1,53 @@
+{
+  "name": "backend-starter-pack",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ThisIsKhalid/backend-starter-pack.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ThisIsKhalid/backend-starter-pack/issues"
+  },
+  "homepage": "https://github.com/ThisIsKhalid/backend-starter-pack#readme",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.4.2",
+    "@prisma/client": "^7.4.2",
+    "@types/node": "^25.3.2",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "http-status": "^2.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.0",
+    "nodemailer": "^8.0.1",
+    "response-time": "^2.3.4",
+    "sharp": "^0.34.5",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
+    "@types/nodemailer": "^7.0.11",
+    "@types/response-time": "^2.3.9",
+    "prisma": "^7.4.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
+  }
+}

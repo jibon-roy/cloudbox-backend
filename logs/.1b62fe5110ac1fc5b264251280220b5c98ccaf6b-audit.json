@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/home/jibon/Desktop/development/CloudBox/cloudbox-backend/logs/.1b62fe5110ac1fc5b264251280220b5c98ccaf6b-audit.json",
+    "files": [
+        {
+            "date": 1772302171267,
+            "name": "/home/jibon/Desktop/development/CloudBox/cloudbox-backend/logs/info-2026-02-28.log",
+            "hash": "7ac6735c9fa4b38677eb7cd3e451570a4807686880e7d7119f7f09594f27c385"
+        }
+    ],
+    "hashType": "sha256"
+}
