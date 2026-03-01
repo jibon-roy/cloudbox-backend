@@ -27,7 +27,7 @@ const createUser = catchAsync(
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.CREATED,
-      message: "User created successfully",
+      message: "Verification email sent successfully. Please check your email.",
       data: result,
     });
   },

@@ -3,6 +3,9 @@ import ApiError from "../../../errors/apiError";
 import { prisma } from "../../../lib/prisma";
 import { hashItem } from "../../../utils/hashAndCompareItem";
 import { IUser } from "./auth.interface";
+import { generateOTP } from "../../../utils/generateOtp";
+import emailSender from "../../../helpers/email_sender/emailSender";
+import { otpEmail } from "../../../shared/emails/otpEmail";
 import { compareItem } from "../../../utils/hashAndCompareItem";
 import { jwtHelpers } from "../../../utils/jwtHelpers";
 import config from "../../../config";
@@ -39,6 +42,20 @@ const createUser = async (userData: IUser) => {
 
   if (!user) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create user");
+  }
+
+  // send verification OTP to user's email
+  try {
+    const otp = generateOTP();
+    const html = otpEmail(otp);
+    await emailSender("Your verification code", user.email, html);
+    // Note: for production you'd store the OTP (e.g., Redis) with expiry to verify later.
+  } catch (err) {
+    // If email sending fails, surface a friendly error
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "Failed to send verification email",
+    );
   }
 
   return user;

@@ -7,7 +7,7 @@ dotenv.config({
 
 export default {
   env: process.env.NODE_ENV,
-  port: process.env.PORT || 8000,
+  port: process.env.PORT || 8008,
   password_salt: process.env.PASSWORD_SALT || "12",
   emailSender: {
     email: process.env.EMAIL_SENDER_EMAIL || "",

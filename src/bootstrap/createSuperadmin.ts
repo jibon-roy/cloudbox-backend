@@ -5,11 +5,9 @@ import { prisma } from "../lib/prisma";
 
 export const initiateAdmin = async () => {
   const payload = {
-    userName: "brenda speace",
-    firstName: "brenda",
-    lastName: "speace",
-    email: "brendaspeace123@gmail.com",
-    password: "123456",
+    name: "Super Admin",
+    email: "superadmin@gmail.com",
+    password: "12345678",
     role: Role.ADMIN,
   };
 
@@ -25,7 +23,7 @@ export const initiateAdmin = async () => {
     const hashedPassword: string = await bcrypt.hash(payload.password, 12);
     await TransactionClient.user.create({
       data: {
-        name: payload.userName,
+        name: payload.name,
         email: payload.email,
         password: hashedPassword,
         role: payload.role,
