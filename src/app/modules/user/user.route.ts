@@ -19,4 +19,10 @@ router.put(
 // Soft delete current user
 router.delete("/delete", auth("USER"), UserController.deleteUser);
 
+// Admin: list users with pagination, search and sort
+router.get("/", auth("ADMIN"), UserController.getUsers);
+
+// Admin: deactivate a user (by id)
+router.patch("/deactivate/:id", auth("ADMIN"), UserController.deactivateUser);
+
 export const UserRoutes = router;

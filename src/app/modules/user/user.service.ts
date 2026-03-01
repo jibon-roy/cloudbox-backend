@@ -52,9 +52,74 @@ async function softDeleteUser(userId: string) {
   return sanitizeUser(updated as any);
 }
 
+type GetUsersOptions = {
+  page?: number;
+  limit?: number;
+  search?: string | undefined;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+};
+
+async function getUsers(options: GetUsersOptions) {
+  const page = Number(options.page) > 0 ? Number(options.page) : 1;
+  const limit = Number(options.limit) > 0 ? Number(options.limit) : 10;
+  const skip = (page - 1) * limit;
+  const search =
+    options.search && options.search.trim() !== "" ? options.search : undefined;
+
+  const allowedSort: Record<string, any> = {
+    created_at: { created_at: options.sortOrder || "desc" },
+    updated_at: { updated_at: options.sortOrder || "desc" },
+    name: { name: options.sortOrder || "desc" },
+    email: { email: options.sortOrder || "desc" },
+  };
+
+  const sortByKey =
+    options.sortBy && Object.keys(allowedSort).includes(options.sortBy)
+      ? options.sortBy
+      : "created_at";
+
+  const where: any = {};
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: "insensitive" } },
+      { email: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  const [total, items] = await Promise.all([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: allowedSort[sortByKey],
+    }),
+  ]);
+
+  return {
+    meta: { total, page, limit },
+    items: items.map((u) => sanitizeUser(u as any)),
+  };
+}
+
+async function deactivateUserByAdmin(targetUserId: string) {
+  const user = await prisma.user.findUnique({ where: { id: targetUserId } });
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+
+  const updated = await prisma.user.update({
+    where: { id: targetUserId },
+    data: { is_active: false, deleted_at: new Date() },
+  });
+
+  return sanitizeUser(updated as any);
+}
+
 export const UserService = {
   updateProfile,
   softDeleteUser,
+  getUsers,
+  deactivateUserByAdmin,
 };
 
 export default UserService;

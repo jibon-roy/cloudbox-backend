@@ -170,6 +170,14 @@ async function verifyOtpAndLogin(email: string) {
     });
   }
 
+  // ensure user is active
+  if (user && user.is_active === false) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      "Your CloudBox profile has been deactivate",
+    );
+  }
+
   const payload = { id: user.id, email: user.email };
   const accessExpires = process.env.ACCESS_EXPIRES_IN || "1d";
   const refreshExpires = process.env.REFRESH_EXPIRES_IN || "30d";
@@ -232,6 +240,14 @@ async function login(email: string, password: string) {
       },
       verification_sent_at: new Date().toISOString(),
     };
+  }
+
+  // ensure user is active
+  if (user && user.is_active === false) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      "Your CloudBox profile has been deactivate",
+    );
   }
 
   const payload = { id: user!.id, email: user!.email };
@@ -350,6 +366,13 @@ async function googleLogin(idToken: string) {
         data: updates,
       })) as any;
     }
+  }
+  // ensure user is active
+  if (user && user.is_active === false) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      "Your CloudBox profile has been deactivate",
+    );
   }
   const payload = { id: user!.id, email: user!.email };
   const accessExpires = process.env.ACCESS_EXPIRES_IN || "1d";

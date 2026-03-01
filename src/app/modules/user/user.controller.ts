@@ -4,6 +4,45 @@ import sendResponse from "../../../shared/sendResponse";
 import { UserService } from "./user.service";
 import httpStatus from "http-status";
 
+const getUsers = catchAsync(async (req: Request, res: Response) => {
+  const q = req.query || {};
+  const page = Number(q.page) || 1;
+  const limit = Math.min(Number(q.limit) || 10, 100);
+  const search = (q.search as string) || (q.q as string) || undefined;
+  const sortBy = (q.sortBy as string) || "created_at";
+  const sortOrder = (q.sortOrder as string) === "asc" ? "asc" : "desc";
+
+  const result = await UserService.getUsers({
+    page,
+    limit,
+    search,
+    sortBy,
+    sortOrder,
+  });
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Users fetched",
+    data: result,
+  });
+});
+
+const deactivateUser = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  if (!id)
+    return res.status(400).json({ success: false, message: "Missing user id" });
+
+  const result = await UserService.deactivateUserByAdmin(id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "User deactivated",
+    data: result,
+  });
+});
+
 const updateProfile = catchAsync(async (req: Request, res: Response) => {
   const user = (req as any).user;
   if (!user || !user.id) {
@@ -46,6 +85,8 @@ const deleteUser = catchAsync(async (req: Request, res: Response) => {
 export const UserController = {
   updateProfile,
   deleteUser,
+  getUsers,
+  deactivateUser,
 };
 
 export default UserController;
