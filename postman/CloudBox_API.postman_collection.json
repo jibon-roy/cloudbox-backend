@@ -1,0 +1,1003 @@
+{
+  "info": {
+    "_postman_id": "8a8779a2-cc9c-4d2e-bc10-06c94f114f60",
+    "name": "CloudBox Backend API (Complete)",
+    "description": "Complete Postman collection for all declared routes in this backend. Includes module-wise folder structure and required headers.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8008/api/v1"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "apiAccessToken",
+      "value": "551bdab342da68c08a7020e5c644557f1ee5302e2eaac838f2bde491e7521131"
+    }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Root",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8008/"
+          },
+          "response": []
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          },
+          "response": []
+        },
+        {
+          "name": "Stripe Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Stripe-Signature",
+                "value": "t=1700000000,v1=your_signature_here"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_test_webhook\",\n  \"type\": \"checkout.session.completed\",\n  \"data\": {\n    \"object\": {}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "http://localhost:8008/stripe/webhook"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/auth/me"
+          },
+          "response": []
+        },
+        {
+          "name": "Google OAuth Redirect",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }
+            ],
+            "url": "{{baseUrl}}/auth/google"
+          },
+          "response": []
+        },
+        {
+          "name": "Google OAuth Callback",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }
+            ],
+            "url": "{{baseUrl}}/auth/google/callback?code=google_auth_code"
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/forgot-password"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"otp\": \"123456\",\n  \"password\": \"newpassword123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/reset-password"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"your_refresh_token\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/refresh-token"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"otp\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/verify-otp"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "John Updated", "type": "text" },
+                { "key": "avatar", "type": "file", "src": "" }
+              ]
+            },
+            "url": "{{baseUrl}}/user/profile"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Current User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/user/delete"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Users (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/user?page=1&limit=10&search=&sortBy=createdAt&sortOrder=desc"
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate User (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/user/deactivate/:id"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subscription",
+      "item": [
+        {
+          "name": "Create Package (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pro\",\n  \"price\": 19.99,\n  \"max_folders\": 1000,\n  \"max_file_size_mb\": 100,\n  \"max_storage_mb\": 10240,\n  \"max_nesting_level\": 10,\n  \"total_file_limit\": 10000,\n  \"files_per_folder\": 1000,\n  \"mime_types\": [\"image/png\", \"application/pdf\"],\n  \"trial_days\": 14,\n  \"is_active\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/subscription"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Packages (Public)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }
+            ],
+            "url": "{{baseUrl}}/subscription"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Packages Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/subscription/all"
+          },
+          "response": []
+        },
+        {
+          "name": "Buy Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"months\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/subscription/buy/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"months\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/subscription/update/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Active Subscription",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/subscription/me"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Package (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pro Plus\",\n  \"price\": 29.99,\n  \"is_active\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/subscription/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "Set Allowed File Types By Categories",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categories\": [\"image\", \"video\", \"audio\", \"pdf\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/subscription/:id/allowed-file-types/categories"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Allowed File Types",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/subscription/:id/allowed-file-types"
+          },
+          "response": []
+        },
+        {
+          "name": "Set Allowed File Types",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mime_types\": [\"image/png\", \"application/pdf\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/subscription/:id/allowed-file-types"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Allowed File Type",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/subscription/allowed-file-types/:typeId"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/subscription/cancel"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Package (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/subscription/:id"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Billing",
+      "item": [
+        {
+          "name": "Get All Billings (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/billing?from=2026-01-01&to=2026-12-31&page=1&limit=20"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Billings",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/billing/my?page=1&limit=20"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Billing Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PAID\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/billing/:id/status"
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm Payment By Reference",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }
+            ],
+            "url": "{{baseUrl}}/billing/confirm/:reference"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Subscriptions (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/billing/subscriptions/active?page=1&limit=20"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Subscription Active Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/billing/subscriptions/:id/status"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "Upload Files",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "folderId", "value": "", "type": "text" },
+                { "key": "files", "type": "file", "src": "" }
+              ]
+            },
+            "url": "{{baseUrl}}/files"
+          },
+          "response": []
+        },
+        {
+          "name": "Replace File",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mime_type\": \"application/pdf\",\n  \"size_bytes\": 102400,\n  \"storage_key\": \"files/new-file-key\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/files/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete File",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/files/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "List Files",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/files?folderId=&search=&page=1&limit=20&sortBy=createdAt&sortOrder=desc&includeShare=true"
+          },
+          "response": []
+        },
+        {
+          "name": "Get File",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/files/:id?includeShare=true"
+          },
+          "response": []
+        },
+        {
+          "name": "Move File",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetFolderId\": \"folder_uuid_or_null\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/files/:id/move"
+          },
+          "response": []
+        },
+        {
+          "name": "Copy File",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetFolderId\": \"folder_uuid_or_null\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/files/:id/copy"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Folders",
+      "item": [
+        {
+          "name": "Create Folder",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Folder\",\n  \"parentId\": \"optional_parent_folder_uuid\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/folders"
+          },
+          "response": []
+        },
+        {
+          "name": "List Folders",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/folders?parentId=&search=&page=1&limit=20&sortBy=createdAt&sortOrder=desc&includeShare=true"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Folder",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/folders/:id?includeShare=true"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Folder",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/folders/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "Move Folder",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetParentId\": \"folder_uuid_or_null\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/folders/:id/move"
+          },
+          "response": []
+        },
+        {
+          "name": "Copy Folder",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetParentId\": \"folder_uuid_or_null\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/folders/:id/copy"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "File System",
+      "item": [
+        {
+          "name": "Get File System Tree",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/filesystem?includeShare=true"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Share",
+      "item": [
+        {
+          "name": "Create File Share",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sharedWithUserId\": \"user_uuid_optional\",\n  \"permission\": \"VIEW\",\n  \"is_public\": false,\n  \"expires_at\": \"2026-12-31T23:59:59.000Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/share/file/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "Get/Create File Share Link",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/share/link/file/:id?expires_at=2026-12-31T23:59:59.000Z"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Folder Share",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sharedWithUserId\": \"user_uuid_optional\",\n  \"permission\": \"VIEW\",\n  \"is_public\": false,\n  \"expires_at\": \"2026-12-31T23:59:59.000Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/share/folder/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "Get/Create Folder Share Link",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/share/link/folder/:id?expires_at=2026-12-31T23:59:59.000Z"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Public Share By Token",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }
+            ],
+            "url": "{{baseUrl}}/share/public/:token"
+          },
+          "response": []
+        },
+        {
+          "name": "Get File Share",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/share/file/:shareId"
+          },
+          "response": []
+        },
+        {
+          "name": "Update File Share",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permission\": \"EDIT\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/share/file/:shareId"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete File Share",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/share/file/:shareId"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Folder Share",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/share/folder/:shareId"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Folder Share",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permission\": \"EDIT\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/share/folder/:shareId"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Folder Share",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/share/folder/:shareId"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Storage",
+      "item": [
+        {
+          "name": "Get My Storage",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/storage/me"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Storage (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/storage"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin (Declared, Not Mounted in routes/index.ts)",
+      "item": [
+        {
+          "name": "User Traffic Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/admin/traffic/weekly?from=2026-01-01&to=2026-12-31"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/admin/summary?from=2026-01-01&to=2026-12-31"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
