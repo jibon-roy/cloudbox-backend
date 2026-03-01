@@ -27,4 +27,10 @@ router.post(
   AuthController.googleLogin,
 );
 
+router.post(
+  "/verify-otp",
+  RequestValidation.validateRequest(AuthValidation.verifyOtpZodSchema),
+  AuthController.verifyOtp,
+);
+
 export const AuthRoutes = router;

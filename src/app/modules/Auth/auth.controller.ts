@@ -3,6 +3,8 @@ import httpStatus from "http-status";
 import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
 import { AuthService } from "./auth.service";
+import { verifyOtp } from "../../../lib/otpStore";
+import ApiError from "../../../errors/apiError";
 import config from "../../../config";
 
 const getMe = catchAsync(async (req: Request, res: Response): Promise<void> => {
@@ -74,4 +76,22 @@ export const AuthController = {
   createUser,
   login,
   googleLogin,
+  verifyOtp: catchAsync(async (req: Request, res: Response): Promise<void> => {
+    const { email, otp } = req.body;
+    // verify from otp store (redis)
+    const ok = await verifyOtp(email, otp);
+    if (!ok) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid or expired OTP");
+    }
+
+    // mark user's email as verified and return token
+    const result = await AuthService.verifyOtpAndLogin(email);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "OTP verified",
+      data: result,
+    });
+  }),
 };

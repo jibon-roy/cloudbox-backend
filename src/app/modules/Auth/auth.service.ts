@@ -6,6 +6,7 @@ import { IUser } from "./auth.interface";
 import { generateOTP } from "../../../utils/generateOtp";
 import emailSender from "../../../helpers/email_sender/emailSender";
 import { otpEmail } from "../../../shared/emails/otpEmail";
+import { saveOtp } from "../../../lib/otpStore";
 import { compareItem } from "../../../utils/hashAndCompareItem";
 import { jwtHelpers } from "../../../utils/jwtHelpers";
 import config from "../../../config";
@@ -47,9 +48,11 @@ const createUser = async (userData: IUser) => {
   // send verification OTP to user's email
   try {
     const otp = generateOTP();
+    // persist otp with TTL (Redis)
+    await saveOtp(user.email, otp);
     const html = otpEmail(otp);
     await emailSender("Your verification code", user.email, html);
-    // Note: for production you'd store the OTP (e.g., Redis) with expiry to verify later.
+    // Note: Redis is used to store the OTP with expiry.
   } catch (err) {
     // If email sending fails, surface a friendly error
     throw new ApiError(
@@ -66,7 +69,37 @@ export const AuthService = {
   createUser,
   login,
   googleLogin,
+  verifyOtpAndLogin,
 };
+
+async function verifyOtpAndLogin(email: string) {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+
+  // set email_verified_at if not already
+  if (!user.email_verified_at) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { email_verified_at: new Date() },
+    });
+  }
+
+  const payload = { id: user.id, email: user.email };
+  const accessToken = jwtHelpers.generateToken(
+    payload,
+    process.env.JWT_SECRET as string,
+    (process.env.EXPIRES_IN || "2h") as any,
+  );
+
+  return {
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    },
+    accessToken,
+  };
+}
 
 async function login(email: string, password: string) {
   const user = await prisma.user.findUnique({ where: { email } });

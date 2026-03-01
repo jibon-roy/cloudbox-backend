@@ -4,6 +4,7 @@ import config from "./config";
 
 import { initializeApp } from "./app";
 import { prisma } from "./lib/prisma";
+import { ensureRedisConnected } from "./lib/redisConnection";
 
 let server: Server;
 
@@ -12,6 +13,20 @@ async function main() {
     // 1. Connect to database
     await prisma.$connect();
     console.log("🛢️  Database connected successfully");
+
+    // 1.b Ensure Redis is reachable
+    try {
+      await ensureRedisConnected(
+        Number(process.env.REDIS_CONNECT_TIMEOUT_MS) || 5000,
+      );
+      console.log("✅ Redis connected");
+    } catch (err) {
+      console.error(
+        "❌ Redis connection failed:",
+        (err as any)?.message || err,
+      );
+      process.exit(1);
+    }
 
     // Ensure superadmin exists
     // Run app initializers (e.g., create superadmin)

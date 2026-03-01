@@ -27,8 +27,16 @@ const googleLoginZodSchema = z.object({
   }),
 });
 
+const verifyOtpZodSchema = z.object({
+  body: z.object({
+    email: z.string().email("Invalid email address"),
+    otp: z.string().min(1, "OTP is required"),
+  }),
+});
+
 export const AuthValidation = {
   createUserZodSchema,
   loginZodSchema,
   googleLoginZodSchema,
+  verifyOtpZodSchema,
 };
