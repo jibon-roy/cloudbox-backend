@@ -1,0 +1,22 @@
+import express from "express";
+import auth from "../../middlewares/auth";
+import { UserController } from "./user.controller";
+import { RequestValidation } from "../../middlewares/validateRequest";
+import { UserValidation } from "./user.validation";
+import { imageUploader } from "../../../helpers/file_uploader/imageUploader";
+
+const router = express.Router();
+
+// Update profile (multipart/form-data with optional 'avatar' file)
+router.put(
+  "/profile",
+  auth("USER"),
+  imageUploader.single("avatar"),
+  RequestValidation.validateRequest(UserValidation.updateProfileZodSchema),
+  UserController.updateProfile,
+);
+
+// Soft delete current user
+router.delete("/delete", auth("USER"), UserController.deleteUser);
+
+export const UserRoutes = router;

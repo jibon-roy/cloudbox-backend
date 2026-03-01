@@ -191,10 +191,11 @@ const GlobalErrorHandler = (
 
   res.status(statusCode).json({
     success: false,
+    statusCode,
     message,
     errorMessages,
-    err: error,
-    stack: config.env !== "production" ? error?.stack : undefined,
+    // include stack only in non-production for debugging
+    ...(config.env !== "production" ? { stack: error?.stack } : {}),
   });
 };
 

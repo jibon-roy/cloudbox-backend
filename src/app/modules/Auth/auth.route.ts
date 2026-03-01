@@ -13,7 +13,7 @@ router.post(
   AuthController.createUser,
 );
 
-router.get("/me", auth("USER"), AuthController.getMe);
+router.get("/me", auth("USER", "ADMIN"), AuthController.getMe);
 
 router.post(
   "/login",
@@ -28,9 +28,27 @@ router.post(
 );
 
 router.post(
+  "/forgot-password",
+  RequestValidation.validateRequest(AuthValidation.forgotPasswordZodSchema),
+  AuthController.forgotPassword,
+);
+
+router.post(
+  "/reset-password",
+  RequestValidation.validateRequest(AuthValidation.resetPasswordZodSchema),
+  AuthController.resetPassword,
+);
+
+router.post(
+  "/refresh-token",
+  RequestValidation.validateRequest(AuthValidation.refreshTokenZodSchema),
+  AuthController.refreshToken,
+);
+
+router.post(
   "/verify-otp",
   RequestValidation.validateRequest(AuthValidation.verifyOtpZodSchema),
-  AuthController.verifyOtp,
+  AuthController.verifyOtpController,
 );
 
 export const AuthRoutes = router;

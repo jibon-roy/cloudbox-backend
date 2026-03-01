@@ -1,11 +1,13 @@
 import cors from "cors";
 import express, { Application, NextFunction, Request, Response } from "express";
+import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import responseTime from "response-time";
 import router from "./app/routes";
 import config from "./config";
 import logger from "./utils/logger/logger";
 import { initiateAdmin } from "./bootstrap/createSuperadmin";
+import GlobalErrorHandler from "./app/middlewares/globalErrorHandler";
 
 // Initialize app
 const app: Application = express();
@@ -34,6 +36,8 @@ const corsOptions = {
 // Middlewares
 app.use(helmet());
 app.use(cors(corsOptions));
+// parse cookies so auth middleware can read `req.cookies`
+app.use(cookieParser());
 // reduce surface: hide X-Powered-By
 app.disable("x-powered-by");
 
@@ -191,6 +195,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     },
   });
 });
+
+// Global error handler (returns JSON formatted errors)
+app.use(GlobalErrorHandler);
 
 export default app;
 
