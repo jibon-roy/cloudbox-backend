@@ -28,16 +28,30 @@ const getAllPackages = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllPackagesAdmin = catchAsync(async (req: Request, res: Response) => {
+  const result = await SubscriptionService.getAllPackagesAdmin();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "All packages fetched (admin)",
+    data: result,
+  });
+});
+
 const buySubscription = catchAsync(async (req: Request, res: Response) => {
   const user = (req as any).user;
   const packageId = req.params.id as string;
   if (!user || !user.id)
     return res.status(401).send({ message: "Unauthorized" });
 
+  const months = Number(req.body?.months) || 1;
+
   const result = await SubscriptionService.buySubscription(
     user.id,
     packageId,
     user.email,
+    months,
   );
 
   sendResponse(res, {
@@ -55,10 +69,13 @@ const updateUserSubscription = catchAsync(
     if (!user || !user.id)
       return res.status(401).send({ message: "Unauthorized" });
 
+    const months = Number(req.body?.months) || 1;
+
     const result = await SubscriptionService.updateUserSubscription(
       user.id,
       packageId,
       user.email,
+      months,
     );
 
     sendResponse(res, {
@@ -138,6 +155,7 @@ export const SubscriptionController = {
   deletePackage,
   getUserActiveSubscription,
   updateUserSubscription,
+  getAllPackagesAdmin,
 };
 
 export default SubscriptionController;

@@ -77,17 +77,20 @@ model RefreshToken {
 }
 
 model SubscriptionPackage {
-  id               String    @id @default(uuid())
-  name             String    @unique
-  max_folders      Int?
-  max_file_size_mb Int?
-  max_storage_mb   Int?
-  trial_days       Int?
-  price            Decimal?  @db.Decimal(10, 2)
-  is_active        Boolean   @default(true)
-  created_at       DateTime  @default(now())
-  updated_at       DateTime  @updatedAt
-  deleted_at       DateTime?
+  id                String    @id @default(uuid())
+  name              String    @unique
+  max_folders       Int?
+  max_nesting_level Int?
+  max_file_size_mb  Int?
+  max_storage_mb    Int?
+  total_file_limit  Int?
+  files_per_folder  Int?
+  trial_days        Int?
+  price             Decimal?  @db.Decimal(10, 2)
+  is_active         Boolean   @default(true)
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
 
   userSubscriptions UserSubscription[]
   allowedFileTypes  PackageAllowedFileType[]

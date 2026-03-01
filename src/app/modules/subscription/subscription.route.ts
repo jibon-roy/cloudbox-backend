@@ -19,10 +19,16 @@ router.post(
 // Public: get all subscription packages
 router.get("/", SubscriptionController.getAllPackages);
 
+// Admin: get all packages (active + inactive)
+router.get("/all", auth("ADMIN"), SubscriptionController.getAllPackagesAdmin);
+
 // Buy subscription (redirect URL from Stripe)
 router.post(
   "/buy/:id",
   auth("USER", "ADMIN"),
+  RequestValidation.validateRequest(
+    SibscriptionValidation.updateSubscriptionZodSchema,
+  ),
   SubscriptionController.buySubscription,
 );
 
@@ -30,6 +36,9 @@ router.post(
 router.post(
   "/update/:id",
   auth("USER", "ADMIN"),
+  RequestValidation.validateRequest(
+    SibscriptionValidation.updateSubscriptionZodSchema,
+  ),
   SubscriptionController.updateUserSubscription,
 );
 

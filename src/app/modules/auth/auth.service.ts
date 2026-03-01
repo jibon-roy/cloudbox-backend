@@ -16,16 +16,18 @@ import { sanitizeUser } from "../../../shared/sanitizeUser";
 import { IUser } from "./auth.interface";
 
 const getMe = async (id: string) => {
-  const user = await prisma.user.findUnique({
-    where: {
-      id: id,
-    },
-  });
+  const user = await prisma.user.findUnique({ where: { id: id } });
 
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   }
-  return sanitizeUser(user);
+
+  const subscription = await prisma.userSubscription.findFirst({
+    where: { userId: id, is_active: true },
+    include: { package: true },
+  });
+
+  return { user: sanitizeUser(user), subscription: subscription ?? null };
 };
 
 const createUser = async (userData: IUser) => {
@@ -196,6 +198,11 @@ async function verifyOtpAndLogin(email: string) {
 
   return {
     user: sanitizeUser(user),
+    subscription:
+      (await prisma.userSubscription.findFirst({
+        where: { userId: user.id, is_active: true },
+        include: { package: true },
+      })) ?? null,
     accessToken,
     refreshToken,
     access_expires_in: accessExpires,
@@ -268,6 +275,11 @@ async function login(email: string, password: string) {
 
   return {
     user: sanitizeUser(user),
+    subscription:
+      (await prisma.userSubscription.findFirst({
+        where: { userId: user.id, is_active: true },
+        include: { package: true },
+      })) ?? null,
     accessToken,
     refreshToken,
     access_expires_in: accessExpires,
