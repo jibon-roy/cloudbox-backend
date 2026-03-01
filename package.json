@@ -1,5 +1,5 @@
 {
-  "name": "backend-starter-pack",
+  "name": "cloudbox-backend",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,15 +11,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ThisIsKhalid/backend-starter-pack.git"
+    "url": "git+https://github.com/jibon-roy/cloudbox-backend.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/ThisIsKhalid/backend-starter-pack/issues"
+    "url": "https://github.com/jibon-roy/cloudbox-backend/issues"
   },
-  "homepage": "https://github.com/ThisIsKhalid/backend-starter-pack#readme",
+  "homepage": "https://github.com/jibon-roy/cloudbox-backend#readme",
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
