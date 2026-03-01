@@ -29,20 +29,30 @@ const googleLoginZodSchema = z.object({
 
 const verifyOtpZodSchema = z.object({
   body: z.object({
-    email: z.string().email("Invalid email address"),
+    email: z
+      .email("Invalid email address")
+      ?.min(1, "Email is required")
+      ?.max(100),
     otp: z.string().min(1, "OTP is required"),
   }),
 });
 
 const forgotPasswordZodSchema = z.object({
   body: z.object({
-    email: z.string().email("Invalid email address"),
+    email: z
+      .email("Invalid email address")
+      .min(1, "Email is required")
+      .max(100),
   }),
 });
 
 const resetPasswordZodSchema = z.object({
   body: z.object({
-    token: z.string().min(1, "Reset token is required"),
+    email: z
+      .email("Invalid email address")
+      .min(1, "Email is required")
+      .max(100),
+    otp: z.string().min(1, "OTP is required"),
     password: z
       .string()
       .min(6, "Password must be at least 6 characters long")

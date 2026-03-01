@@ -56,8 +56,8 @@ const forgotPassword = catchAsync(
 
 const resetPassword = catchAsync(
   async (req: Request, res: Response): Promise<void> => {
-    const { token, password } = req.body;
-    await AuthService.resetPassword(token, password);
+    const { email, otp, password } = req.body;
+    await AuthService.resetPassword(email, otp, password);
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
@@ -187,6 +187,120 @@ const googleLogin = catchAsync(
   },
 );
 
+const googleRedirect = catchAsync(async (req: Request, res: Response) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId)
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "Google client id not configured",
+    );
+
+  const callback =
+    process.env.GOOGLE_CALLBACK_URL ||
+    `${req.protocol}://${req.get("host")}/auth/google/callback`;
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: callback,
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "offline",
+    prompt: "consent",
+  });
+
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Google authorization URL",
+    data: { url },
+  });
+});
+
+const googleCallback = catchAsync(async (req: Request, res: Response) => {
+  const code = (req.query.code as string) || undefined;
+  if (!code) throw new ApiError(httpStatus.BAD_REQUEST, "Missing code");
+
+  const clientId = process.env.GOOGLE_CLIENT_ID as string;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET as string;
+  const callback =
+    process.env.GOOGLE_CALLBACK_URL ||
+    `${req.protocol}://${req.get("host")}/auth/google/callback`;
+
+  const tokenResp = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: callback,
+      grant_type: "authorization_code",
+    }),
+  });
+
+  if (!tokenResp.ok) {
+    const txt = await tokenResp.text();
+    throw new ApiError(
+      httpStatus.UNAUTHORIZED,
+      "Failed to exchange code for token: " + txt,
+    );
+  }
+
+  const tokenData = await tokenResp.json();
+  const idToken = tokenData.id_token as string | undefined;
+  if (!idToken)
+    throw new ApiError(httpStatus.UNAUTHORIZED, "Missing id_token from Google");
+
+  const result = await AuthService.googleLogin(idToken);
+
+  // set cookies
+  try {
+    const accessToken = (result as any).accessToken;
+    const refreshToken = (result as any).refreshToken;
+    const secure = config.env === "production";
+    const accessMax =
+      Number(process.env.ACCESS_COOKIE_MAX_AGE_MS) || 24 * 60 * 60 * 1000;
+    const refreshMax =
+      Number(process.env.REFRESH_COOKIE_MAX_AGE_MS) || 30 * 24 * 60 * 60 * 1000;
+    if (accessToken && refreshToken) {
+      res.cookie("access_token", accessToken, {
+        httpOnly: true,
+        secure,
+        sameSite: "lax",
+        maxAge: accessMax,
+        path: "/",
+      });
+      res.cookie("refresh_token", refreshToken, {
+        httpOnly: true,
+        secure,
+        sameSite: "lax",
+        maxAge: refreshMax,
+        path: "/",
+      });
+    }
+  } catch (err) {
+    // ignore cookie set failures
+  }
+
+  const redirectTo =
+    process.env.GOOGLE_REDIRECT_URL ||
+    process.env.FRONTEND_URL ||
+    process.env.GOOGLE_CALLBACK_URL;
+  if (redirectTo) {
+    const sep = redirectTo.includes("?") ? "&" : "?";
+    const redirectUrl = `${redirectTo}${sep}token=${encodeURIComponent((result as any).accessToken)}`;
+    return res.redirect(302, redirectUrl);
+  }
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Login with Google successful",
+    data: result,
+  });
+});
+
 const verifyOtpController = catchAsync(
   async (req: Request, res: Response): Promise<void> => {
     const { email, otp } = req.body;
@@ -245,6 +359,8 @@ export const AuthController = {
   resetPassword,
   login,
   googleLogin,
+  googleRedirect,
+  googleCallback,
   verifyOtpController,
   refreshToken,
 };

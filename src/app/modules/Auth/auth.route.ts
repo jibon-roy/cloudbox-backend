@@ -21,11 +21,11 @@ router.post(
   AuthController.login,
 );
 
-router.post(
-  "/google",
-  RequestValidation.validateRequest(AuthValidation.googleLoginZodSchema),
-  AuthController.googleLogin,
-);
+// start Google OAuth2 authorization (redirect)
+router.get("/google", AuthController.googleRedirect);
+
+// OAuth2 callback
+router.get("/google/callback", AuthController.googleCallback);
 
 router.post(
   "/forgot-password",

@@ -2,7 +2,7 @@ import httpStatus from "http-status";
 import ApiError from "../../../errors/apiError";
 import { prisma } from "../../../lib/prisma";
 import { hashItem } from "../../../utils/hashAndCompareItem";
-import { IUser } from "./auth.interface";
+
 import { generateOTP } from "../../../utils/generateOtp";
 import emailSender from "../../../helpers/email_sender/emailSender";
 import { otpEmail } from "../../../shared/emails/otpEmail";
@@ -11,12 +11,9 @@ import { compareItem } from "../../../utils/hashAndCompareItem";
 import { jwtHelpers } from "../../../utils/jwtHelpers";
 import config from "../../../config";
 import { randomUUID } from "crypto";
-import {
-  saveResetToken,
-  consumeResetToken,
-} from "../../../lib/passwordResetStore";
-import resetPasswordEmail from "../../../shared/emails/resetPasswordEmail";
+import { verifyOtp } from "../../../lib/otpStore";
 import { sanitizeUser } from "../../../shared/sanitizeUser";
+import { IUser } from "./auth.interface";
 
 const getMe = async (id: string) => {
   const user = await prisma.user.findUnique({
@@ -117,36 +114,38 @@ const createUser = async (userData: IUser) => {
 
 async function forgotPassword(email: string) {
   const user = await prisma.user.findUnique({ where: { email } });
-  const token = randomUUID();
-  const ttlMs = Number(process.env.RESET_PASSWORD_TTL_MS) || 60 * 60 * 1000; // default 1 hour
-
+  // Always return success to avoid user enumeration
   if (user) {
     try {
-      await saveResetToken(user.email, token, ttlMs);
-      const frontendReset =
-        process.env.FRONTEND_RESET_URL || process.env.FRONTEND_URL;
-      const html = resetPasswordEmail(token, frontendReset);
-      await emailSender("Password reset request", user.email, html);
+      const otp = generateOTP();
+      const ttlMs = Number(process.env.RESET_PASSWORD_TTL_MS) || 60 * 60 * 1000; // default 1 hour
+      await saveOtp(user.email, otp, ttlMs);
+      const html = otpEmail(otp);
+      await emailSender("Your password reset OTP", user.email, html);
       return { sent: true, verification_sent_at: new Date().toISOString() };
     } catch (err) {
-      // do not reveal internal errors to caller
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        "Failed to send reset email",
+        "Failed to send reset OTP",
       );
     }
   }
 
-  // Always return success to avoid user enumeration
   return { sent: true };
 }
 
-async function resetPassword(token: string, newPassword: string) {
-  const email = await consumeResetToken(token);
-  if (!email)
-    throw new ApiError(httpStatus.BAD_REQUEST, "Invalid or expired token");
+async function resetPassword(email: string, otp: string, newPassword: string) {
+  if (!email) throw new ApiError(httpStatus.BAD_REQUEST, "Email is required");
+  // normalize email (trim + lowercase) to match storage key
+  const normalizedEmail = (email || "").toString().trim().toLowerCase();
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  // verify OTP from otp store
+  const ok = await verifyOtp(normalizedEmail, otp);
+  if (!ok) throw new ApiError(httpStatus.BAD_REQUEST, "Invalid or expired OTP");
+
+  const user = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
   if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
 
   const hashed = await hashItem(newPassword);
