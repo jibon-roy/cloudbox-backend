@@ -23,4 +23,7 @@ export default {
     windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
     maxRequests: Number(process.env.RATE_LIMIT_MAX) || 120,
   },
+  frontend_url: process.env.FRONTEND_URL || "http://localhost:3000",
+  stripe_secret_key: process.env.STRIPE_SECRET_KEY || "",
+  stripe_publishable_key: process.env.STRIPE_PUBLISHABLE_KEY || "",
 };

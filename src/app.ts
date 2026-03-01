@@ -1,5 +1,6 @@
 import cors from "cors";
 import express, { Application, NextFunction, Request, Response } from "express";
+import webhookController from "./helpers/stripe/stripe_webhook/webhook_controller";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import responseTime from "response-time";
@@ -40,6 +41,15 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 // reduce surface: hide X-Powered-By
 app.disable("x-powered-by");
+
+// Stripe webhook endpoint - must accept raw body and be placed before
+// JSON body parser and API access token enforcement so Stripe can POST without our header.
+app.post(
+  "/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  (req: Request, res: Response) =>
+    webhookController.handleStripeWebhook(req, res),
+);
 
 // enforce request size limits
 app.use(express.json({ limit: "100kb" }));
