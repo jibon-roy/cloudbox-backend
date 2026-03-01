@@ -1,6 +1,6 @@
 import httpStatus from "http-status";
 import ApiError from "../../../errors/apiError";
-import prisma from "../../../lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import { hashItem } from "../../../utils/hashAndCompareItem";
 import { IUser } from "./auth.interface";
 import { compareItem } from "../../../utils/hashAndCompareItem";

@@ -1,7 +1,9 @@
 import { Server } from "http";
 import app from "./app";
 import config from "./config";
-import prisma from "./lib/prisma";
+
+import { initializeApp } from "./app";
+import { prisma } from "./lib/prisma";
 
 let server: Server;
 
@@ -10,6 +12,14 @@ async function main() {
     // 1. Connect to database
     await prisma.$connect();
     console.log("🛢️  Database connected successfully");
+
+    // Ensure superadmin exists
+    // Run app initializers (e.g., create superadmin)
+    try {
+      await initializeApp();
+    } catch (err) {
+      console.error("❌ App initialization failed:", err);
+    }
 
     // 2. Start HTTP server
     server = app.listen(config.port, () => {

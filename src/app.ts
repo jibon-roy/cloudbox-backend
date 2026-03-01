@@ -5,6 +5,7 @@ import responseTime from "response-time";
 import router from "./app/routes";
 import config from "./config";
 import logger from "./utils/logger/logger";
+import { initiateAdmin } from "./bootstrap/createSuperadmin";
 
 // Initialize app
 const app: Application = express();
@@ -84,7 +85,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   const openPaths = ["/", "/api/v1/health"];
   if (openPaths.includes(req.path)) return next();
 
-  const token = req.get("api-access-token") || req.get("API-ACCESS-TOKEN");
+  const token = req.get("X-API-Access-Token") || req.get("API-ACCESS-TOKEN");
   const configured = process.env.API_ACCESS_TOKEN || config.apiAccessToken;
   if (!configured) {
     // If no token configured, allow (useful for dev) but log a warning
@@ -95,12 +96,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   }
 
   if (!token || token !== configured) {
-    return res
-      .status(401)
-      .json({
-        success: false,
-        message: "Unauthorized: missing or invalid api-access-token header",
-      });
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: missing or invalid api-access-token header",
+    });
   }
 
   next();
@@ -194,3 +193,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 export default app;
+
+// Application initializers to be run after DB connect
+export async function initializeApp() {
+  try {
+    await initiateAdmin();
+  } catch (err) {
+    console.error("Failed to run app initializers:", err);
+  }
+}
