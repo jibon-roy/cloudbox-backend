@@ -12,5 +12,5 @@ jest.setTimeout(10000);
 // Mock environment variables for tests
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/cloudbox_test';
-process.env.JWT_SECRET = 'test_secret_key_do_not_use_in_production';
+process.env.JWT_SECRET = 'test_secret_key__not_for_production';
 process.env.JWT_REFRESH_SECRET = 'test_refresh_secret';
