@@ -1,10 +1,17 @@
 import express from "express";
 import auth from "../../middlewares/auth";
 import { FileController } from "./file.controller";
+import { upload } from "../../../helpers/file_uploader/fileUploadToLocal";
 
 const router = express.Router();
 
-router.post("/", auth("USER", "ADMIN"), FileController.uploadFile);
+// Accept multiple files on the `files` field (max 20 per request)
+router.post(
+  "/",
+  auth("USER", "ADMIN"),
+  upload.array("files", 20),
+  FileController.uploadFile,
+);
 router.put("/:id", auth("USER", "ADMIN"), FileController.replaceFile);
 router.delete("/:id", auth("USER", "ADMIN"), FileController.deleteFile);
 router.get("/", auth("USER", "ADMIN"), FileController.listFiles);

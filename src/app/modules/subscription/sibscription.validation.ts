@@ -10,6 +10,7 @@ export const createSubscriptionZodSchema = z.object({
     max_nesting_level: z.number().int().nonnegative().optional(),
     total_file_limit: z.number().int().nonnegative().optional(),
     files_per_folder: z.number().int().nonnegative().optional(),
+    mime_types: z.array(z.string().min(1)).optional(),
     trial_days: z.number().int().nonnegative().optional(),
     is_active: z.boolean().optional(),
   }),
@@ -25,8 +26,19 @@ export const updateSubscriptionZodSchema = z.object({
     max_nesting_level: z.number().int().nonnegative().optional(),
     total_file_limit: z.number().int().nonnegative().optional(),
     files_per_folder: z.number().int().nonnegative().optional(),
+    mime_types: z.array(z.string().min(1)).optional(),
     trial_days: z.number().int().nonnegative().optional(),
     is_active: z.boolean().optional(),
+  }),
+});
+
+export const setAllowedFileTypesSchema = z.object({
+  body: z.object({ mime_types: z.array(z.string().min(1)) }),
+});
+
+export const setAllowedFileTypesByCategoriesSchema = z.object({
+  body: z.object({
+    categories: z.array(z.enum(["image", "video", "audio", "pdf"])),
   }),
 });
 
@@ -45,6 +57,10 @@ export const updateUserSubscriptionZodSchema = z.object({
 export const SibscriptionValidation = {
   createSubscriptionZodSchema,
   updateSubscriptionZodSchema,
+  setAllowedFileTypesSchema,
+  buySubscriptionZodSchema,
+  updateUserSubscriptionZodSchema,
+  setAllowedFileTypesByCategoriesSchema,
 };
 
 export default SibscriptionValidation;

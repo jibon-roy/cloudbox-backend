@@ -10,8 +10,54 @@ const uploadFile = catchAsync(async (req: Request, res: Response) => {
   if (!user || !user.id)
     return res.status(401).send({ message: "Unauthorized" });
 
-  // Expecting middleware to handle actual file upload; here we accept metadata
-  const { name, folderId, mime_type, size_bytes, path, storage_key } = req.body;
+  // If multer provided files (multiple), process them; otherwise fall back to
+  // legacy metadata-in-body behavior.
+  const files = (req as any).files as Express.Multer.File[] | undefined;
+  const folderId = (req.body && req.body.folderId) || null;
+
+  const results: any[] = [];
+
+  // helper to compute path based on folder if available
+  let folderPath: string | null = null;
+  if (folderId) {
+    const folder = await prisma.folder.findUnique({ where: { id: folderId } });
+    if (folder) folderPath = folder.path;
+  }
+
+  if (files && files.length > 0) {
+    for (const f of files) {
+      const name = f.originalname;
+      const mime_type = f.mimetype;
+      const size_bytes = BigInt(f.size);
+      const pathVal = folderPath
+        ? `${folderPath}/${f.originalname}`
+        : f.originalname;
+      const storage_key =
+        (f as any).filename || (f as any).path || f.originalname;
+
+      const r = await FileService.uploadFile(user.id, {
+        name,
+        folderId,
+        mime_type,
+        size_bytes,
+        path: pathVal,
+        storage_key,
+      });
+      results.push(r);
+    }
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.CREATED,
+      message: "Files uploaded",
+      data: results,
+    });
+
+    return;
+  }
+
+  // Fallback: single file metadata provided in body
+  const { name, mime_type, size_bytes, path, storage_key } = req.body;
   const result = await FileService.uploadFile(user.id, {
     name,
     folderId,
@@ -20,6 +66,7 @@ const uploadFile = catchAsync(async (req: Request, res: Response) => {
     path,
     storage_key,
   });
+
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,

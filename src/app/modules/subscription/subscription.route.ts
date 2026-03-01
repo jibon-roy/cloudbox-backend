@@ -58,6 +58,34 @@ router.patch(
   ),
   SubscriptionController.updatePackage,
 );
+router.post(
+  "/:id/allowed-file-types/categories",
+  auth("ADMIN"),
+  RequestValidation.validateRequest(
+    SibscriptionValidation.setAllowedFileTypesByCategoriesSchema,
+  ),
+  SubscriptionController.setAllowedFileTypesByCategories,
+);
+
+// Admin: manage allowed file types for a package
+router.get(
+  "/:id/allowed-file-types",
+  auth("ADMIN"),
+  SubscriptionController.getAllowedFileTypes,
+);
+router.post(
+  "/:id/allowed-file-types",
+  auth("ADMIN"),
+  RequestValidation.validateRequest(
+    SibscriptionValidation.setAllowedFileTypesSchema,
+  ),
+  SubscriptionController.setAllowedFileTypes,
+);
+router.delete(
+  "/allowed-file-types/:typeId",
+  auth("ADMIN"),
+  SubscriptionController.deleteAllowedFileType,
+);
 
 // Cancel user's active subscription
 router.post(

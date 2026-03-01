@@ -28,6 +28,38 @@ export const SubscriptionService = {
     if (data.trial_days !== undefined) createData.trial_days = data.trial_days;
 
     const pkg = await prisma.subscriptionPackage.create({ data: createData });
+
+    // if mime types provided on create, persist allowed file types
+    if (Array.isArray(data.mime_types) && data.mime_types.length > 0) {
+      const rows = data.mime_types.map((m: string) => ({
+        subscriptionPackageId: pkg.id,
+        mime_type: m as any,
+      }));
+      try {
+        await prisma.packageAllowedFileType.createMany({ data: rows });
+      } catch (err) {
+        // ignore failures to avoid breaking package creation
+      }
+    }
+
+    // if file_type_ids provided, convert to mime types via FileType entries and persist
+    if (Array.isArray(data.file_type_ids) && data.file_type_ids.length > 0) {
+      const fts: any[] = await (prisma as any).fileType.findMany({
+        where: { id: { in: data.file_type_ids } },
+      });
+      if (fts.length > 0) {
+        const rows = fts.map((t: any) => ({
+          subscriptionPackageId: pkg.id,
+          mime_type: t.mime_type,
+        }));
+        try {
+          await prisma.packageAllowedFileType.createMany({ data: rows });
+        } catch (err) {
+          // ignore
+        }
+      }
+    }
+
     return pkg;
   },
 
@@ -75,6 +107,21 @@ export const SubscriptionService = {
       where: { id },
       data: updateData,
     });
+
+    // if mime_types provided, replace allowed file types
+    if (Array.isArray(data.mime_types)) {
+      await SubscriptionService.setAllowedFileTypes(id, data.mime_types || []);
+    }
+
+    // if file_type_ids provided, resolve to mime types and replace allowed file types
+    if (Array.isArray(data.file_type_ids)) {
+      const fts: any[] = await (prisma as any).fileType.findMany({
+        where: { id: { in: data.file_type_ids } },
+      });
+      const mimes = fts.map((t) => t.mime_type);
+      await SubscriptionService.setAllowedFileTypes(id, mimes);
+    }
+
     return pkg;
   },
 
@@ -84,6 +131,61 @@ export const SubscriptionService = {
       data: { deleted_at: new Date(), is_active: false },
     });
     return pkg;
+  },
+
+  getAllowedFileTypes: async (packageId: string) => {
+    const items = await prisma.packageAllowedFileType.findMany({
+      where: { subscriptionPackageId: packageId },
+    });
+    return items;
+  },
+
+  setAllowedFileTypes: async (packageId: string, mimeTypes: string[]) => {
+    // replace existing with provided list in a transaction
+    const ops = await prisma.$transaction(async (tx) => {
+      await tx.packageAllowedFileType.deleteMany({
+        where: { subscriptionPackageId: packageId },
+      });
+      const creates = mimeTypes.map((m) =>
+        tx.packageAllowedFileType.create({
+          data: { subscriptionPackageId: packageId, mime_type: m as any  },
+        }),
+      );
+      return await Promise.all(creates);
+    });
+    return ops;
+  },
+
+  deleteAllowedFileType: async (id: string) => {
+    const item = await prisma.packageAllowedFileType.delete({ where: { id } });
+    return item;
+  },
+
+  // helper to set allowed file types by friendly categories
+  setAllowedFileTypesByCategories: async (
+    packageId: string,
+    categories: string[],
+  ) => {
+    const map: Record<string, string[]> = {
+      image: [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "image/svg+xml",
+      ],
+      video: ["video/mp4", "video/quicktime", "video/webm", "video/x-msvideo"],
+      audio: ["audio/mpeg", "audio/wav", "audio/ogg"],
+      pdf: ["application/pdf"],
+    };
+
+    const mimeTypes = categories
+      .map((c) => map[c.toLowerCase()])
+      .filter(Boolean) as string[][];
+
+    const flat = mimeTypes.flat();
+    const unique = Array.from(new Set(flat));
+    return await SubscriptionService.setAllowedFileTypes(packageId, unique);
   },
 
   buySubscription: async (

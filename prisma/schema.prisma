@@ -100,8 +100,29 @@ model PackageAllowedFileType {
   id                    String              @id @default(uuid())
   subscriptionPackage   SubscriptionPackage @relation(fields: [subscriptionPackageId], references: [id])
   subscriptionPackageId String
-  mime_type             String
+  mime_type             FileMime
   created_at            DateTime            @default(now())
+}
+
+enum FileMime {
+  IMAGE_JPEG
+  IMAGE_PNG
+  IMAGE_GIF
+  IMAGE_WEBP
+  IMAGE_SVG
+  VIDEO_MP4
+  VIDEO_QUICKTIME
+  VIDEO_WEBM
+  VIDEO_X_MSVIDEO
+  AUDIO_MPEG
+  AUDIO_WAV
+  AUDIO_OGG
+  APPLICATION_PDF
+  APPLICATION_ZIP
+  APPLICATION_7Z
+  APPLICATION_RAR
+  APPLICATION_DOC
+  APPLICATION_DOCX
 }
 
 model Folder {

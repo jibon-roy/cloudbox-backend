@@ -101,6 +101,59 @@ const updatePackage = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllowedFileTypes = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const items = await SubscriptionService.getAllowedFileTypes(id);
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Allowed file types fetched",
+    data: items,
+  });
+});
+
+const setAllowedFileTypes = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const types: string[] = req.body?.mime_types ?? [];
+  const items = await SubscriptionService.setAllowedFileTypes(id, types);
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Allowed file types set",
+    data: items,
+  });
+});
+
+const setAllowedFileTypesByCategories = catchAsync(
+  async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const categories: string[] = req.body?.categories ?? [];
+    const items = await SubscriptionService.setAllowedFileTypesByCategories(
+      id,
+      categories,
+    );
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Allowed file types set by categories",
+      data: items,
+    });
+  },
+);
+
+const deleteAllowedFileType = catchAsync(
+  async (req: Request, res: Response) => {
+    const typeId = req.params.typeId as string;
+    const item = await SubscriptionService.deleteAllowedFileType(typeId);
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Allowed file type deleted",
+      data: item,
+    });
+  },
+);
+
 const cancelSubscription = catchAsync(async (req: Request, res: Response) => {
   const user = (req as any).user;
   if (!user || !user.id)
@@ -156,6 +209,10 @@ export const SubscriptionController = {
   getUserActiveSubscription,
   updateUserSubscription,
   getAllPackagesAdmin,
+  getAllowedFileTypes,
+  setAllowedFileTypes,
+  deleteAllowedFileType,
+  setAllowedFileTypesByCategories,
 };
 
 export default SubscriptionController;
