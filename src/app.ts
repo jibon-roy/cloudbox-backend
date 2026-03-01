@@ -33,9 +33,78 @@ const corsOptions = {
 // Middlewares
 app.use(helmet());
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// reduce surface: hide X-Powered-By
+app.disable("x-powered-by");
+
+// enforce request size limits
+app.use(express.json({ limit: "100kb" }));
+app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 app.use(express.static("public"));
+
+// Simple in-memory rate limiter (basic protection)
+const rateStore: Record<string, { count: number; resetAt: number }> = {};
+const windowMs = Number(
+  process.env.RATE_LIMIT_WINDOW_MS || config.rateLimit.windowMs,
+);
+const maxRequests = Number(
+  process.env.RATE_LIMIT_MAX || config.rateLimit.maxRequests,
+);
+app.use((req: Request, res: Response, next: NextFunction) => {
+  try {
+    const key =
+      req.ip || req.headers["x-forwarded-for"]?.toString() || "global";
+    const now = Date.now();
+    const entry = rateStore[key] || { count: 0, resetAt: now + windowMs };
+    if (now > entry.resetAt) {
+      entry.count = 0;
+      entry.resetAt = now + windowMs;
+    }
+    entry.count += 1;
+    rateStore[key] = entry;
+    res.setHeader("X-RateLimit-Limit", String(maxRequests));
+    res.setHeader(
+      "X-RateLimit-Remaining",
+      String(Math.max(0, maxRequests - entry.count)),
+    );
+    res.setHeader("X-RateLimit-Reset", String(Math.ceil(entry.resetAt / 1000)));
+    if (entry.count > maxRequests) {
+      return res
+        .status(429)
+        .json({ success: false, message: "Too many requests" });
+    }
+    next();
+  } catch (err) {
+    next();
+  }
+});
+
+// API access token header enforcement
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // allow health and root endpoints without token
+  const openPaths = ["/", "/api/v1/health"];
+  if (openPaths.includes(req.path)) return next();
+
+  const token = req.get("api-access-token") || req.get("API-ACCESS-TOKEN");
+  const configured = process.env.API_ACCESS_TOKEN || config.apiAccessToken;
+  if (!configured) {
+    // If no token configured, allow (useful for dev) but log a warning
+    logger.warn({
+      message: "API_ACCESS_TOKEN not configured; skipping header check",
+    });
+    return next();
+  }
+
+  if (!token || token !== configured) {
+    return res
+      .status(401)
+      .json({
+        success: false,
+        message: "Unauthorized: missing or invalid api-access-token header",
+      });
+  }
+
+  next();
+});
 
 // Endpoints ( root )
 app.get("/", (req: Request, res: Response) => {
@@ -52,14 +121,14 @@ app.use(
       time < 100
         ? "VERY FAST"
         : time < 200
-        ? "FAST"
-        : time < 500
-        ? "NORMAL"
-        : time < 1000
-        ? "SLOW"
-        : time < 5000
-        ? "VERY_SLOW"
-        : "CRITICAL";
+          ? "FAST"
+          : time < 500
+            ? "NORMAL"
+            : time < 1000
+              ? "SLOW"
+              : time < 5000
+                ? "VERY_SLOW"
+                : "CRITICAL";
 
     // Skip logging for streaming requests to reduce noise
     if (!req.path.includes("/stream/")) {
@@ -84,7 +153,7 @@ app.use(
         alert: "SLOW_RESPONSE",
       });
     }
-  })
+  }),
 );
 
 // Routes

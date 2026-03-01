@@ -10,9 +10,21 @@ const router = express.Router();
 router.post(
   "/register",
   RequestValidation.validateRequest(AuthValidation.createUserZodSchema),
-  AuthController.createUser
+  AuthController.createUser,
 );
 
 router.get("/me", auth("USER"), AuthController.getMe);
+
+router.post(
+  "/login",
+  RequestValidation.validateRequest(AuthValidation.loginZodSchema),
+  AuthController.login,
+);
+
+router.post(
+  "/google",
+  RequestValidation.validateRequest(AuthValidation.googleLoginZodSchema),
+  AuthController.googleLogin,
+);
 
 export const AuthRoutes = router;

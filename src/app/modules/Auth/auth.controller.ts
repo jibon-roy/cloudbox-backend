@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
 import { AuthService } from "./auth.service";
+import config from "../../../config";
 
 const getMe = catchAsync(async (req: Request, res: Response): Promise<void> => {
   const user = req.user;
@@ -32,7 +33,45 @@ const createUser = catchAsync(
   },
 );
 
+const login = catchAsync(async (req: Request, res: Response): Promise<void> => {
+  const { email, password } = req.body;
+
+  const result = await AuthService.login(email, password);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Login successful",
+    data: result,
+  });
+});
+
+const googleLogin = catchAsync(
+  async (req: Request, res: Response): Promise<void> => {
+    const { idToken } = req.body;
+
+    const result = await AuthService.googleLogin(idToken);
+
+    const callback =
+      process.env.GOOGLE_CALLBACK_URL || config.google?.callbackUrl;
+    if (callback) {
+      const sep = callback.includes("?") ? "&" : "?";
+      const redirectUrl = `${callback}${sep}token=${encodeURIComponent(result.accessToken)}`;
+      return res.redirect(302, redirectUrl);
+    }
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Login with Google successful",
+      data: result,
+    });
+  },
+);
+
 export const AuthController = {
   getMe,
   createUser,
+  login,
+  googleLogin,
 };

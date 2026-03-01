@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "D:\\Working file\\projects\\flutter\\cloudbox-backend\\logs\\.24effdf9f775872e94c0daeb678554d3ad5e8358-audit.json",
+    "files": [
+        {
+            "date": 1772346277881,
+            "name": "D:\\Working file\\projects\\flutter\\cloudbox-backend\\logs\\info-2026-03-01.log",
+            "hash": "9edbcc1000a101a19e7d8524f81fb73f551460a78c511f71974e06a8906de2d3"
+        }
+    ],
+    "hashType": "sha256"
+}

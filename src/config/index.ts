@@ -12,5 +12,15 @@ export default {
   emailSender: {
     email: process.env.EMAIL_SENDER_EMAIL || "",
     app_pass: process.env.EMAIL_SENDER_APP_PASS || "",
-  }
+  },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || "",
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    callbackUrl: process.env.GOOGLE_CALLBACK_URL || "",
+  },
+  apiAccessToken: process.env.API_ACCESS_TOKEN || "",
+  rateLimit: {
+    windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
+    maxRequests: Number(process.env.RATE_LIMIT_MAX) || 120,
+  },
 };

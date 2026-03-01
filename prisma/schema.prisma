@@ -39,6 +39,7 @@ enum WebhookEventStatus {
 model User {
   id                String    @id @default(uuid())
   name              String?
+  avatar_url        String?
   email             String    @unique
   password          String
   role              Role      @default(USER)
