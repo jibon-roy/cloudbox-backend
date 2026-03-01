@@ -8,6 +8,7 @@ import { FolderRoutes } from "../modules/folder/folder.route";
 import { FileSystemRoutes } from "../modules/file-system/file-system.route";
 import { ShareRoutes } from "../modules/share/share.route";
 import { StorageRoutes } from "../modules/storage/storage.route";
+import { AdminRoutes } from "../modules/admin/admin.routes";
 
 const router = express.Router();
 
@@ -47,6 +48,10 @@ const moduleRoutes = [
   {
     path: "/storage",
     route: StorageRoutes,
+  },
+  {
+    path: "/admin",
+    route: AdminRoutes,
   },
   //   {
   //     path: "/order",

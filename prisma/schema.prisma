@@ -63,6 +63,11 @@ model User {
   publicShares         PublicShare[]        @relation("PublicShareCreatedBy")
   folderSharesWithUser FolderShare[]        @relation("FolderShareWithUser")
   fileSharesWithUser   FileShare[]          @relation("FileShareWithUser")
+
+  @@index([email])
+  @@index([is_active])
+  @@index([role])
+  @@index([created_at])
 }
 
 model RefreshToken {
@@ -94,6 +99,9 @@ model SubscriptionPackage {
 
   userSubscriptions UserSubscription[]
   allowedFileTypes  PackageAllowedFileType[]
+
+  @@index([is_active])
+  @@index([created_at])
 }
 
 model PackageAllowedFileType {
@@ -207,6 +215,9 @@ model BillingTransaction {
 
   @@index([userId])
   @@index([subscriptionId])
+  @@index([status])
+  @@index([created_at])
+  @@index([reference])
 }
 
 model StorageUsage {
@@ -262,6 +273,11 @@ model PublicShare {
   created_by   User      @relation("PublicShareCreatedBy", fields: [createdById], references: [id])
   createdById  String
   created_at   DateTime  @default(now())
+
+  @@index([public_token])
+  @@index([is_active])
+  @@index([expires_at])
+  @@index([createdById])
 }
 
 model ActivityLog {
@@ -273,6 +289,11 @@ model ActivityLog {
   entity_id   String?
   ip_address  String?
   created_at  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action_type])
+  @@index([created_at])
+  @@index([entity_type, entity_id])
 }
 
 model Webhook {
