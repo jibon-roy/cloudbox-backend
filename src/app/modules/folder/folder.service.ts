@@ -1,39 +1,31 @@
-import { prisma } from "../../../lib/prisma";
-import ApiError from "../../../errors/apiError";
-import httpStatus from "http-status";
+import { prisma } from '../../../lib/prisma';
+import ApiError from '../../../errors/apiError';
+import httpStatus from 'http-status';
 
 const ensureActiveSubscription = async (userId: string) => {
   const active = await prisma.userSubscription.findFirst({
     where: { userId, is_active: true },
   });
-  if (!active)
-    throw new ApiError(httpStatus.PAYMENT_REQUIRED, "No active subscription");
+  if (!active) throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'No active subscription');
   return active;
 };
 
 export const FolderService = {
   createFolder: async (
     userId: string,
-    data: { name: string; parentId?: string | null; path?: string },
+    data: { name: string; parentId?: string | null; path?: string }
   ) => {
     const active = await ensureActiveSubscription(userId);
     const pkg = await prisma.subscriptionPackage.findUnique({
       where: { id: active.packageId },
     });
-    if (!pkg)
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        "Subscription package not found",
-      );
+    if (!pkg) throw new ApiError(httpStatus.BAD_REQUEST, 'Subscription package not found');
     if (pkg.max_folders) {
       const count = await prisma.folder.count({
         where: { userId, is_deleted: false },
       });
       if (count >= pkg.max_folders)
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          "Folder limit reached for your package",
-        );
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Folder limit reached for your package');
     }
 
     let newPath = data.path ?? data.name;
@@ -42,20 +34,33 @@ export const FolderService = {
         where: { id: data.parentId },
       });
       if (!parent || parent.userId !== userId)
-        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid parent folder");
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid parent folder');
       newPath = `${parent.path}/${data.name}`;
 
       // check nesting level
-      const parentDepth = parent.path ? parent.path.split("/").length : 1;
+      const parentDepth = parent.path ? parent.path.split('/').length : 1;
       const newDepth = parentDepth + 1;
-      if (
-        (pkg as any).max_nesting_level &&
-        newDepth > Number((pkg as any).max_nesting_level)
-      )
+      if ((pkg as any).max_nesting_level && newDepth > Number((pkg as any).max_nesting_level))
         throw new ApiError(
           httpStatus.BAD_REQUEST,
-          "Max folder nesting level exceeded for your package",
+          'Max folder nesting level exceeded for your package'
         );
+    }
+
+    // Check for name conflict within the same parent (root uses parentId = null)
+    const existing = await prisma.folder.findFirst({
+      where: {
+        userId,
+        parentId: data.parentId ?? null,
+        name: data.name,
+        is_deleted: false,
+      },
+    });
+    if (existing) {
+      throw new ApiError(
+        httpStatus.CONFLICT,
+        'Folder with the same name already exists in this location'
+      );
     }
 
     const created = await prisma.folder.create({
@@ -87,26 +92,22 @@ export const FolderService = {
     if (filters.parentId) where.parentId = filters.parentId;
     const items = await prisma.folder.findMany({
       where,
-      orderBy: { created_at: "desc" },
+      orderBy: { created_at: 'desc' },
     });
     return items;
   },
 
   getFolder: async (userId: string, id: string) => {
     const folder = await prisma.folder.findUnique({ where: { id } });
-    if (!folder) throw new ApiError(httpStatus.NOT_FOUND, "Folder not found");
+    if (!folder) throw new ApiError(httpStatus.NOT_FOUND, 'Folder not found');
     if (folder.userId === userId) return folder;
-    throw new ApiError(
-      httpStatus.FORBIDDEN,
-      "Not authorized to access this folder",
-    );
+    throw new ApiError(httpStatus.FORBIDDEN, 'Not authorized to access this folder');
   },
 
   deleteFolderRecursive: async (userId: string, id: string) => {
     const folder = await prisma.folder.findUnique({ where: { id } });
-    if (!folder) throw new ApiError(httpStatus.NOT_FOUND, "Folder not found");
-    if (folder.userId !== userId)
-      throw new ApiError(httpStatus.FORBIDDEN, "Not owner");
+    if (!folder) throw new ApiError(httpStatus.NOT_FOUND, 'Folder not found');
+    if (folder.userId !== userId) throw new ApiError(httpStatus.FORBIDDEN, 'Not owner');
 
     // find all nested folders and files
     const folders = await prisma.folder.findMany({
@@ -118,10 +119,7 @@ export const FolderService = {
     });
 
     // compute sums
-    const totalBytes = files.reduce(
-      (acc, f) => acc + BigInt(f.size_bytes.toString()),
-      BigInt(0),
-    );
+    const totalBytes = files.reduce((acc, f) => acc + BigInt(f.size_bytes.toString()), BigInt(0));
     const totalFiles = files.length;
     const totalFolders = folderIds.length;
 
@@ -150,15 +148,10 @@ export const FolderService = {
     };
   },
 
-  moveFolder: async (
-    userId: string,
-    id: string,
-    targetParentId: string | null,
-  ) => {
+  moveFolder: async (userId: string, id: string, targetParentId: string | null) => {
     const folder = await prisma.folder.findUnique({ where: { id } });
-    if (!folder) throw new ApiError(httpStatus.NOT_FOUND, "Folder not found");
-    if (folder.userId !== userId)
-      throw new ApiError(httpStatus.FORBIDDEN, "Not owner");
+    if (!folder) throw new ApiError(httpStatus.NOT_FOUND, 'Folder not found');
+    if (folder.userId !== userId) throw new ApiError(httpStatus.FORBIDDEN, 'Not owner');
     const activeSub = await ensureActiveSubscription(userId);
     const pkg = await prisma.subscriptionPackage.findUnique({
       where: { id: activeSub.packageId },
@@ -169,31 +162,28 @@ export const FolderService = {
         where: { id: targetParentId },
       });
       if (!target || target.userId !== userId)
-        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid target parent");
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid target parent');
 
       // prevent circular: ensure target is not inside folder
       if (target.path.startsWith(folder.path))
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          "Cannot move folder inside its descendant",
-        );
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot move folder inside its descendant');
 
       // check nesting constraints for subtree
-      const oldBaseDepth = folder.path ? folder.path.split("/").length : 1;
-      const targetBaseDepth = target.path ? target.path.split("/").length : 1;
+      const oldBaseDepth = folder.path ? folder.path.split('/').length : 1;
+      const targetBaseDepth = target.path ? target.path.split('/').length : 1;
       const children = await prisma.folder.findMany({
         where: { path: { contains: folder.path }, userId },
       });
       if ((pkg as any).max_nesting_level) {
         const maxNest = Number((pkg as any).max_nesting_level);
         for (const c of children) {
-          const childDepth = c.path.split("/").length;
+          const childDepth = c.path.split('/').length;
           const depthOffset = childDepth - oldBaseDepth;
           const newDepth = targetBaseDepth + 1 + depthOffset;
           if (newDepth > maxNest)
             throw new ApiError(
               httpStatus.BAD_REQUEST,
-              "Move would exceed max nesting level for your package",
+              'Move would exceed max nesting level for your package'
             );
         }
       }
@@ -243,15 +233,10 @@ export const FolderService = {
     return { success: true };
   },
 
-  copyFolderRecursive: async (
-    userId: string,
-    id: string,
-    targetParentId: string | null,
-  ) => {
+  copyFolderRecursive: async (userId: string, id: string, targetParentId: string | null) => {
     const folder = await prisma.folder.findUnique({ where: { id } });
-    if (!folder) throw new ApiError(httpStatus.NOT_FOUND, "Folder not found");
-    if (folder.userId !== userId)
-      throw new ApiError(httpStatus.FORBIDDEN, "Not owner");
+    if (!folder) throw new ApiError(httpStatus.NOT_FOUND, 'Folder not found');
+    if (folder.userId !== userId) throw new ApiError(httpStatus.FORBIDDEN, 'Not owner');
 
     const activeSub = await ensureActiveSubscription(userId);
     const pkg = await prisma.subscriptionPackage.findUnique({
@@ -273,37 +258,31 @@ export const FolderService = {
         where: { userId, is_deleted: false },
       });
       if (existingFolders + folders.length > Number((pkg as any).max_folders))
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          "Folder limit exceeded for your package",
-        );
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Folder limit exceeded for your package');
     }
     if ((pkg as any).total_file_limit) {
       const existingFiles = usage ? Number(usage.total_files) : 0;
       if (existingFiles + files.length > Number((pkg as any).total_file_limit))
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          "Total file limit exceeded for your package",
-        );
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Total file limit exceeded for your package');
     }
 
     // check nesting level constraints
     if ((pkg as any).max_nesting_level) {
-      const baseDepth = folder.path ? folder.path.split("/").length : 1;
+      const baseDepth = folder.path ? folder.path.split('/').length : 1;
       const targetBaseDepth = targetParentId
         ? (await prisma.folder.findUnique({
             where: { id: targetParentId },
-          }))!.path.split("/").length + 1
+          }))!.path.split('/').length + 1
         : 1;
       const maxNest = Number((pkg as any).max_nesting_level);
       for (const c of folders) {
-        const childDepth = c.path.split("/").length;
+        const childDepth = c.path.split('/').length;
         const offset = childDepth - baseDepth;
         const newDepth = targetBaseDepth + offset;
         if (newDepth > maxNest)
           throw new ApiError(
             httpStatus.BAD_REQUEST,
-            "Copy would exceed max nesting level for your package",
+            'Copy would exceed max nesting level for your package'
           );
       }
     }
@@ -316,13 +295,10 @@ export const FolderService = {
       const rootFiles = await prisma.file.count({
         where: { folderId: folder.id, is_deleted: false },
       });
-      if (
-        filesInTargetParent + rootFiles >
-        Number((pkg as any).files_per_folder)
-      )
+      if (filesInTargetParent + rootFiles > Number((pkg as any).files_per_folder))
         throw new ApiError(
           httpStatus.BAD_REQUEST,
-          "Files per folder limit exceeded for target folder",
+          'Files per folder limit exceeded for target folder'
         );
     }
 

@@ -13,8 +13,19 @@ const resolveStoredFilePath = (storageKey: string | null) => {
   if (!storageKey) return null;
   if (path.isAbsolute(storageKey) && fs.existsSync(storageKey)) return storageKey;
 
+  // Check uploads root
   const localPath = path.join(process.cwd(), 'uploads', storageKey);
   if (fs.existsSync(localPath)) return localPath;
+
+  // Check common subfolder for images
+  const imagesPath = path.join(process.cwd(), 'uploads', 'images', storageKey);
+  if (fs.existsSync(imagesPath)) return imagesPath;
+
+  // As a fallback, if storageKey contains a nested path, try resolving directly
+  if (storageKey.includes(path.sep)) {
+    const nested = path.join(process.cwd(), 'uploads', storageKey);
+    if (fs.existsSync(nested)) return nested;
+  }
 
   return null;
 };
@@ -35,7 +46,7 @@ const getFileSystem = catchAsync(async (req: Request, res: Response) => {
   // fetch all folders and files for user and build tree with pagination
   const foldersList = await (
     await import('../../../lib/prisma')
-  ).prisma.folder.findMany({ 
+  ).prisma.folder.findMany({
     where: { userId: user.id, is_deleted: false },
     skip,
     take: pageLimit,
@@ -44,7 +55,7 @@ const getFileSystem = catchAsync(async (req: Request, res: Response) => {
 
   const filesList = await (
     await import('../../../lib/prisma')
-  ).prisma.file.findMany({ 
+  ).prisma.file.findMany({
     where: { userId: user.id, is_deleted: false },
     skip,
     take: pageLimit,

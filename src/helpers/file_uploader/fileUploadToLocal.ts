@@ -1,11 +1,17 @@
-import multer from "multer";
-import path from "path";
-import { fileFilter } from "./fileFilter";
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileFilter } from './fileFilter';
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    // cb(null, path.join( "/var/www/uploads"));
-    cb(null, path.join(process.cwd(), "uploads"));
+    const uploadPath = path.join(process.cwd(), 'uploads');
+    try {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    } catch (err) {
+      // ignore mkdir errors
+    }
+    cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
     cb(null, `${Date.now()}-${file.originalname}`);
