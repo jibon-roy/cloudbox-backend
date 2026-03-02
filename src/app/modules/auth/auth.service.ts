@@ -1,25 +1,25 @@
-import httpStatus from "http-status";
-import ApiError from "../../../errors/apiError";
-import { prisma } from "../../../lib/prisma";
-import { hashItem } from "../../../utils/hashAndCompareItem";
+import httpStatus from 'http-status';
+import ApiError from '../../../errors/apiError';
+import { prisma } from '../../../lib/prisma';
+import { hashItem } from '../../../utils/hashAndCompareItem';
 
-import { generateOTP } from "../../../utils/generateOtp";
-import emailSender from "../../../helpers/email_sender/emailSender";
-import { otpEmail } from "../../../shared/emails/otpEmail";
-import { saveOtp } from "../../../lib/otpStore";
-import { compareItem } from "../../../utils/hashAndCompareItem";
-import { jwtHelpers } from "../../../utils/jwtHelpers";
-import config from "../../../config";
-import { randomUUID } from "crypto";
-import { verifyOtp } from "../../../lib/otpStore";
-import { sanitizeUser } from "../../../shared/sanitizeUser";
-import { IUser } from "./auth.interface";
+import { generateOTP } from '../../../utils/generateOtp';
+import emailSender from '../../../helpers/email_sender/emailSender';
+import { otpEmail } from '../../../shared/emails/otpEmail';
+import { saveOtp } from '../../../lib/otpStore';
+import { compareItem } from '../../../utils/hashAndCompareItem';
+import { jwtHelpers } from '../../../utils/jwtHelpers';
+import config from '../../../config';
+import { randomUUID } from 'crypto';
+import { verifyOtp } from '../../../lib/otpStore';
+import { sanitizeUser } from '../../../shared/sanitizeUser';
+import { IUser } from './auth.interface';
 
 const getMe = async (id: string) => {
   const user = await prisma.user.findUnique({ where: { id: id } });
 
   if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
 
   const subscription = await prisma.userSubscription.findFirst({
@@ -42,12 +42,9 @@ const createUser = async (userData: IUser) => {
         const otp = generateOTP();
         await saveOtp(existing.email, otp);
         const html = otpEmail(otp);
-        await emailSender("Your verification code", existing.email, html);
+        await emailSender('Your verification code', existing.email, html);
       } catch (err) {
-        throw new ApiError(
-          httpStatus.INTERNAL_SERVER_ERROR,
-          "Failed to send verification email",
-        );
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to send verification email');
       }
 
       return {
@@ -63,7 +60,7 @@ const createUser = async (userData: IUser) => {
     }
 
     // Already exists and verified
-    throw new ApiError(httpStatus.CONFLICT, "User already exists");
+    throw new ApiError(httpStatus.CONFLICT, 'User already exists');
   }
 
   // Create new user
@@ -83,7 +80,7 @@ const createUser = async (userData: IUser) => {
   });
 
   if (!user) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create user");
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Failed to create user');
   }
 
   // send verification OTP to user's email
@@ -92,14 +89,11 @@ const createUser = async (userData: IUser) => {
     // persist otp with TTL (Redis)
     await saveOtp(user.email, otp);
     const html = otpEmail(otp);
-    await emailSender("Your verification code", user.email, html);
+    await emailSender('Your verification code', user.email, html);
     // Note: Redis is used to store the OTP with expiry.
   } catch (err) {
     // If email sending fails, surface a friendly error
-    throw new ApiError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      "Failed to send verification email",
-    );
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to send verification email');
   }
 
   return {
@@ -123,13 +117,10 @@ async function forgotPassword(email: string) {
       const ttlMs = Number(process.env.RESET_PASSWORD_TTL_MS) || 60 * 60 * 1000; // default 1 hour
       await saveOtp(user.email, otp, ttlMs);
       const html = otpEmail(otp);
-      await emailSender("Your password reset OTP", user.email, html);
+      await emailSender('Your password reset OTP', user.email, html);
       return { sent: true, verification_sent_at: new Date().toISOString() };
     } catch (err) {
-      throw new ApiError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        "Failed to send reset OTP",
-      );
+      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to send reset OTP');
     }
   }
 
@@ -137,18 +128,18 @@ async function forgotPassword(email: string) {
 }
 
 async function resetPassword(email: string, otp: string, newPassword: string) {
-  if (!email) throw new ApiError(httpStatus.BAD_REQUEST, "Email is required");
+  if (!email) throw new ApiError(httpStatus.BAD_REQUEST, 'Email is required');
   // normalize email (trim + lowercase) to match storage key
-  const normalizedEmail = (email || "").toString().trim().toLowerCase();
+  const normalizedEmail = (email || '').toString().trim().toLowerCase();
 
   // verify OTP from otp store
   const ok = await verifyOtp(normalizedEmail, otp);
-  if (!ok) throw new ApiError(httpStatus.BAD_REQUEST, "Invalid or expired OTP");
+  if (!ok) throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid or expired OTP');
 
   const user = await prisma.user.findUnique({
     where: { email: normalizedEmail },
   });
-  if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
 
   const hashed = await hashItem(newPassword);
   await prisma.user.update({
@@ -161,7 +152,7 @@ async function resetPassword(email: string, otp: string, newPassword: string) {
 
 async function verifyOtpAndLogin(email: string) {
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
 
   // set email_verified_at if not already
   if (!user.email_verified_at) {
@@ -173,27 +164,23 @@ async function verifyOtpAndLogin(email: string) {
 
   // ensure user is active
   if (user && user.is_active === false) {
-    throw new ApiError(
-      httpStatus.FORBIDDEN,
-      "Your CloudBox profile has been deactivate",
-    );
+    throw new ApiError(httpStatus.FORBIDDEN, 'Your CloudBox profile has been deactivate');
   }
 
   const payload = { id: user.id, email: user.email };
-  const accessExpires = process.env.ACCESS_EXPIRES_IN || "1d";
-  const refreshExpires = process.env.REFRESH_EXPIRES_IN || "30d";
+  const accessExpires = process.env.ACCESS_EXPIRES_IN || '1d';
+  const refreshExpires = process.env.REFRESH_EXPIRES_IN || '30d';
   const accessToken = jwtHelpers.generateToken(
     payload,
     process.env.JWT_SECRET as string,
-    accessExpires as any,
+    accessExpires as any
   );
 
-  const refreshSecret =
-    process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+  const refreshSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
   const refreshToken = jwtHelpers.generateToken(
     payload,
     refreshSecret as string,
-    refreshExpires as any,
+    refreshExpires as any
   );
 
   return {
@@ -214,12 +201,12 @@ async function login(email: string, password: string) {
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid credentials");
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid credentials');
   }
 
   const isMatch = await compareItem(password, user.password);
   if (!isMatch) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid credentials");
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid credentials');
   }
 
   // If email not verified, send verification OTP and inform the caller
@@ -228,12 +215,9 @@ async function login(email: string, password: string) {
       const otp = generateOTP();
       await saveOtp(user.email, otp);
       const html = otpEmail(otp);
-      await emailSender("Your verification code", user.email, html);
+      await emailSender('Your verification code', user.email, html);
     } catch (err) {
-      throw new ApiError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        "Failed to send verification email",
-      );
+      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to send verification email');
     }
 
     return {
@@ -250,27 +234,23 @@ async function login(email: string, password: string) {
 
   // ensure user is active
   if (user && user.is_active === false) {
-    throw new ApiError(
-      httpStatus.FORBIDDEN,
-      "Your CloudBox profile has been deactivate",
-    );
+    throw new ApiError(httpStatus.FORBIDDEN, 'Your CloudBox profile has been deactivate');
   }
 
   const payload = { id: user!.id, email: user!.email };
-  const accessExpires = process.env.ACCESS_EXPIRES_IN || "1d";
-  const refreshExpires = process.env.REFRESH_EXPIRES_IN || "30d";
+  const accessExpires = process.env.ACCESS_EXPIRES_IN || '1d';
+  const refreshExpires = process.env.REFRESH_EXPIRES_IN || '30d';
   const accessToken = jwtHelpers.generateToken(
     payload,
     process.env.JWT_SECRET as string,
-    accessExpires as any,
+    accessExpires as any
   );
 
-  const refreshSecret =
-    process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+  const refreshSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
   const refreshToken = jwtHelpers.generateToken(
     payload,
     refreshSecret as string,
-    refreshExpires as any,
+    refreshExpires as any
   );
 
   return {
@@ -290,40 +270,46 @@ async function login(email: string, password: string) {
 async function refreshAccessToken(refreshToken: string) {
   try {
     const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
-    const payload = jwtHelpers.verifyToken(
-      refreshToken,
-      secret as string,
-    ) as any;
-    if (!payload || !payload.id) throw new Error("Invalid token payload");
+    const payload = jwtHelpers.verifyToken(refreshToken, secret as string) as any;
+    if (!payload || !payload.id) throw new Error('Invalid token payload');
 
-    const accessExpires = process.env.ACCESS_EXPIRES_IN || "1d";
+    const accessExpires = process.env.ACCESS_EXPIRES_IN || '1d';
+    const refreshExpires = process.env.REFRESH_EXPIRES_IN || '30d';
     const newAccessToken = jwtHelpers.generateToken(
       { id: payload.id, email: payload.email },
       process.env.JWT_SECRET as string,
-      accessExpires as any,
+      accessExpires as any
     );
 
-    return { accessToken: newAccessToken, access_expires_in: accessExpires };
-  } catch (err) {
-    throw new ApiError(
-      httpStatus.UNAUTHORIZED,
-      "Invalid or expired refresh token",
+    const newRefreshToken = jwtHelpers.generateToken(
+      { id: payload.id, email: payload.email },
+      secret as string,
+      refreshExpires as any
     );
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      access_expires_in: accessExpires,
+      refresh_expires_in: refreshExpires,
+    };
+  } catch (err) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid or expired refresh token');
   }
 }
 
 async function googleLogin(idToken: string) {
   if (!idToken) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "Missing id token");
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Missing id token');
   }
 
   // Verify token with Google's tokeninfo endpoint
   const resp = await fetch(
-    `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+    `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`
   );
 
   if (!resp.ok) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid Google id token");
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid Google id token');
   }
 
   const info = await resp.json();
@@ -331,16 +317,15 @@ async function googleLogin(idToken: string) {
   // Verify audience
   const clientId = process.env.GOOGLE_CLIENT_ID || config.google?.clientId;
   if (!clientId || info.aud !== clientId) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid Google client id");
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid Google client id');
   }
 
   const email = info.email as string;
-  const name = ((info.name as string) || email.split("@")[0]) as string;
-  const email_verified =
-    info.email_verified === "true" || info.email_verified === true;
+  const name = ((info.name as string) || email.split('@')[0]) as string;
+  const email_verified = info.email_verified === 'true' || info.email_verified === true;
 
   if (!email_verified) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, "Google account not verified");
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Google account not verified');
   }
 
   // find or create user (store avatar_url from Google picture)
@@ -354,7 +339,7 @@ async function googleLogin(idToken: string) {
         name: name || null,
         password: hashed,
         email_verified_at: new Date(),
-        avatar_url: (info.picture as string) || "/assets/user_avatar.png",
+        avatar_url: (info.picture as string) || '/assets/user_avatar.png',
       },
       select: {
         id: true,
@@ -368,8 +353,7 @@ async function googleLogin(idToken: string) {
     // update email_verified_at if not set and update avatar_url if provided by Google
     const updates: any = {};
     if (!user.email_verified_at) updates.email_verified_at = new Date();
-    if (info.picture && user.avatar_url !== info.picture)
-      updates.avatar_url = info.picture;
+    if (info.picture && user.avatar_url !== info.picture) updates.avatar_url = info.picture;
 
     if (Object.keys(updates).length > 0) {
       user = (await prisma.user.update({
@@ -380,26 +364,22 @@ async function googleLogin(idToken: string) {
   }
   // ensure user is active
   if (user && user.is_active === false) {
-    throw new ApiError(
-      httpStatus.FORBIDDEN,
-      "Your CloudBox profile has been deactivate",
-    );
+    throw new ApiError(httpStatus.FORBIDDEN, 'Your CloudBox profile has been deactivate');
   }
   const payload = { id: user!.id, email: user!.email };
-  const accessExpires = process.env.ACCESS_EXPIRES_IN || "1d";
-  const refreshExpires = process.env.REFRESH_EXPIRES_IN || "30d";
+  const accessExpires = process.env.ACCESS_EXPIRES_IN || '1d';
+  const refreshExpires = process.env.REFRESH_EXPIRES_IN || '30d';
   const accessToken = jwtHelpers.generateToken(
     payload,
     process.env.JWT_SECRET as string,
-    accessExpires as any,
+    accessExpires as any
   );
 
-  const refreshSecret =
-    process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+  const refreshSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
   const refreshToken = jwtHelpers.generateToken(
     payload,
     refreshSecret as string,
-    refreshExpires as any,
+    refreshExpires as any
   );
 
   return {

@@ -123,9 +123,7 @@
           "name": "Google OAuth Redirect",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }
-            ],
+            "header": [{ "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }],
             "url": "{{baseUrl}}/auth/google"
           },
           "response": []
@@ -134,9 +132,7 @@
           "name": "Google OAuth Callback",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }
-            ],
+            "header": [{ "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }],
             "url": "{{baseUrl}}/auth/google/callback?code=google_auth_code"
           },
           "response": []
@@ -296,9 +292,7 @@
           "name": "Get Packages (Public)",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }
-            ],
+            "header": [{ "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }],
             "url": "{{baseUrl}}/subscription"
           },
           "response": []
@@ -516,9 +510,7 @@
           "name": "Confirm Payment By Reference",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }
-            ],
+            "header": [{ "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }],
             "url": "{{baseUrl}}/billing/confirm/:reference"
           },
           "response": []
@@ -778,6 +770,30 @@
             "url": "{{baseUrl}}/filesystem?includeShare=true"
           },
           "response": []
+        },
+        {
+          "name": "Download File by Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/filesystem/download/file/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "Download Folder (Zip) by Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/filesystem/download/folder/:id"
+          },
+          "response": []
         }
       ]
     },
@@ -848,9 +864,7 @@
           "name": "Get Public Share By Token",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }
-            ],
+            "header": [{ "key": "X-API-Access-Token", "value": "{{apiAccessToken}}" }],
             "url": "{{baseUrl}}/share/public/:token"
           },
           "response": []

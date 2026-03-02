@@ -1,24 +1,50 @@
-import { Request, Response } from "express";
-import catchAsync from "../../../shared/catchAsync";
-import sendResponse from "../../../shared/sendResponse";
-import FileService from "../file/file.service";
-import { prisma } from "../../../lib/prisma";
+import { Request, Response } from 'express';
+import catchAsync from '../../../shared/catchAsync';
+import sendResponse from '../../../shared/sendResponse';
+import { prisma } from '../../../lib/prisma';
+import path from 'path';
+import fs from 'fs';
+import archiver from 'archiver';
+import ApiError from '../../../errors/apiError';
+import httpStatus from 'http-status';
+
+const resolveStoredFilePath = (storageKey: string | null) => {
+  if (!storageKey) return null;
+  if (path.isAbsolute(storageKey) && fs.existsSync(storageKey)) return storageKey;
+
+  const localPath = path.join(process.cwd(), 'uploads', storageKey);
+  if (fs.existsSync(localPath)) return localPath;
+
+  return null;
+};
+
+const buildDownloadBase = (req: Request) =>
+  `${req.protocol}://${req.get('host')}/api/v1/filesystem`;
 
 const getFileSystem = catchAsync(async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (!user || !user.id)
-    return res.status(401).send({ message: "Unauthorized" });
+  if (!user || !user.id) return res.status(401).send({ message: 'Unauthorized' });
 
   // fetch all folders and files for user and build tree
   const folders = await (
-    await import("../../../lib/prisma")
+    await import('../../../lib/prisma')
   ).prisma.folder.findMany({ where: { userId: user.id, is_deleted: false } });
   const files = await (
-    await import("../../../lib/prisma")
+    await import('../../../lib/prisma')
   ).prisma.file.findMany({ where: { userId: user.id, is_deleted: false } });
 
+  const downloadBase = buildDownloadBase(req);
+
   const map: Record<string, any> = {};
-  folders.forEach((f: any) => (map[f.id] = { ...f, children: [], files: [] }));
+  folders.forEach(
+    (f: any) =>
+      (map[f.id] = {
+        ...f,
+        downloadUrl: `${downloadBase}/download/folder/${f.id}`,
+        children: [],
+        files: [],
+      })
+  );
 
   const roots: any[] = [];
   folders.forEach((f: any) => {
@@ -27,20 +53,37 @@ const getFileSystem = catchAsync(async (req: Request, res: Response) => {
   });
 
   files.forEach((fi: any) => {
+    const fileNode = {
+      ...fi,
+      downloadUrl: `${downloadBase}/download/file/${fi.id}`,
+    };
+
     if (fi.folderId && map[fi.folderId]) map[fi.folderId].files.push(fi);
-    else roots.push({ file: fi });
+    else roots.push({ file: fileNode });
+  });
+
+  files.forEach((fi: any) => {
+    if (fi.folderId && map[fi.folderId]) {
+      const idx = map[fi.folderId].files.findIndex((x: any) => x.id === fi.id);
+      if (idx !== -1) {
+        map[fi.folderId].files[idx] = {
+          ...map[fi.folderId].files[idx],
+          downloadUrl: `${downloadBase}/download/file/${fi.id}`,
+        };
+      }
+    }
   });
 
   // Optionally include share links if requested. This performs batched queries to avoid N+1.
-  if (String(req.query.includeShare) === "true") {
+  if (String(req.query.includeShare) === 'true') {
     const folderIds = folders.map((f: any) => f.id);
     const fileIds = files.map((fi: any) => fi.id);
     const pubs = await prisma.publicShare.findMany({
       where: {
         is_active: true,
         OR: [
-          { folderId: { in: folderIds.length ? folderIds : ["__none__"] } },
-          { fileId: { in: fileIds.length ? fileIds : ["__none__"] } },
+          { folderId: { in: folderIds.length ? folderIds : ['__none__'] } },
+          { fileId: { in: fileIds.length ? fileIds : ['__none__'] } },
         ],
       },
     });
@@ -68,11 +111,91 @@ const getFileSystem = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     success: true,
     statusCode: 200,
-    message: "File system fetched",
+    message: 'File system fetched',
     data: roots,
   });
 });
 
-export const FileSystemController = { getFileSystem };
+const downloadFileById = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  if (!user || !user.id) return res.status(401).send({ message: 'Unauthorized' });
+
+  const id = req.params.id as string;
+  const file = await prisma.file.findFirst({
+    where: { id, userId: user.id, is_deleted: false },
+  });
+
+  if (!file) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'File not found');
+  }
+
+  const storedPath = resolveStoredFilePath(file.storage_key);
+  if (!storedPath) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Stored file not found on disk');
+  }
+
+  return res.download(storedPath, file.name);
+});
+
+const downloadFolderById = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  if (!user || !user.id) return res.status(401).send({ message: 'Unauthorized' });
+
+  const id = req.params.id as string;
+  const folder = await prisma.folder.findFirst({
+    where: { id, userId: user.id, is_deleted: false },
+  });
+
+  if (!folder) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Folder not found');
+  }
+
+  const folders = await prisma.folder.findMany({
+    where: {
+      userId: user.id,
+      is_deleted: false,
+      OR: [{ id: folder.id }, { path: { startsWith: `${folder.path}/` } }],
+    },
+  });
+  const folderIds = folders.map((f) => f.id);
+
+  const files = await prisma.file.findMany({
+    where: {
+      userId: user.id,
+      is_deleted: false,
+      folderId: { in: folderIds.length ? folderIds : [folder.id] },
+    },
+  });
+
+  const zipName = `${folder.name}.zip`;
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
+
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  archive.on('error', (err) => {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, err.message);
+  });
+
+  archive.pipe(res);
+
+  for (const file of files) {
+    const storedPath = resolveStoredFilePath(file.storage_key);
+    if (!storedPath) continue;
+
+    const relativeName = file.path?.startsWith(`${folder.path}/`)
+      ? file.path.slice(folder.path.length + 1)
+      : file.name;
+
+    archive.file(storedPath, { name: relativeName || file.name });
+  }
+
+  await archive.finalize();
+});
+
+export const FileSystemController = {
+  getFileSystem,
+  downloadFileById,
+  downloadFolderById,
+};
 
 export default FileSystemController;
