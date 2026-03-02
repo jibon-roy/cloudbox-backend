@@ -10,14 +10,23 @@ export const sanitizeInput = (req: Request, _res: Response, next: NextFunction) 
     req.body = sanitizeObject(req.body);
   }
 
-  // Sanitize query parameters
+  // Sanitize query parameters (query is a read-only getter in Express, mutate in place)
   if (req.query && typeof req.query === 'object') {
-    req.query = sanitizeObject(req.query);
+    const sanitizedQuery = sanitizeObject(req.query);
+    for (const key in req.query) {
+      delete req.query[key];
+    }
+    for (const key in sanitizedQuery) {
+      req.query[key] = sanitizedQuery[key];
+    }
   }
 
-  // Sanitize URL parameters
+  // Sanitize URL parameters (params can be directly assigned)
   if (req.params && typeof req.params === 'object') {
-    req.params = sanitizeObject(req.params);
+    const sanitizedParams = sanitizeObject(req.params);
+    for (const key in req.params) {
+      req.params[key] = sanitizedParams[key];
+    }
   }
 
   next();

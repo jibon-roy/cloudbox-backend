@@ -342,6 +342,19 @@ const verifyOtpController = catchAsync(async (req: Request, res: Response): Prom
   });
 });
 
+const logout = catchAsync(async (req: Request, res: Response): Promise<void> => {
+  // Clear auth cookies
+  res.clearCookie('access_token', { path: '/' });
+  res.clearCookie('refresh_token', { path: '/' });
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Logged out successfully',
+    data: { success: true },
+  });
+});
+
 export const AuthController = {
   getMe,
   createUser,
@@ -353,4 +366,5 @@ export const AuthController = {
   googleCallback,
   verifyOtpController,
   refreshToken,
+  logout,
 };

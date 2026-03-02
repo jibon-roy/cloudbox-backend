@@ -3,6 +3,7 @@ import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
 import { SubscriptionService } from "./subscription.service";
 import httpStatus from "http-status";
+import ApiError from "../../../errors/apiError";
 
 const createPackage = catchAsync(async (req: Request, res: Response) => {
   const data = req.body || {};
@@ -197,7 +198,29 @@ const getUserActiveSubscription = catchAsync(
       data: result,
     });
   },
+  
 );
+
+const confirmPayment = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  if (!user || !user.id)
+    return res.status(401).send({ message: "Unauthorized" });
+
+  const sessionId = req.body?.session_id as string;
+  if (!sessionId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "session_id is required");
+  }
+
+  const result = await SubscriptionService.confirmStripePayment(sessionId, user.id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Payment confirmed and subscription updated",
+    data: result,
+  });
+});
+
 
 export const SubscriptionController = {
   createPackage,
@@ -213,6 +236,7 @@ export const SubscriptionController = {
   setAllowedFileTypes,
   deleteAllowedFileType,
   setAllowedFileTypesByCategories,
+  confirmPayment,
 };
 
 export default SubscriptionController;

@@ -1,54 +1,56 @@
-import express, { Request, Response } from "express";
-import auth from "../../middlewares/auth";
-import { AuthController } from "./auth.controller";
+import express, { Request, Response } from 'express';
+import auth from '../../middlewares/auth';
+import { AuthController } from './auth.controller';
 
-import { RequestValidation } from "../../middlewares/validateRequest";
-import { AuthValidation } from "./auth.validation";
+import { RequestValidation } from '../../middlewares/validateRequest';
+import { AuthValidation } from './auth.validation';
 
 const router = express.Router();
 
 router.post(
-  "/register",
+  '/register',
   RequestValidation.validateRequest(AuthValidation.createUserZodSchema),
-  AuthController.createUser,
+  AuthController.createUser
 );
 
-router.get("/me", auth("USER", "ADMIN"), AuthController.getMe);
+router.get('/me', auth('USER', 'ADMIN'), AuthController.getMe);
 
 router.post(
-  "/login",
+  '/login',
   RequestValidation.validateRequest(AuthValidation.loginZodSchema),
-  AuthController.login,
+  AuthController.login
 );
 
 // start Google OAuth2 authorization (redirect)
-router.get("/google", AuthController.googleRedirect);
+router.get('/google', AuthController.googleRedirect);
 
 // OAuth2 callback
-router.get("/google/callback", AuthController.googleCallback);
+router.get('/google/callback', AuthController.googleCallback);
 
 router.post(
-  "/forgot-password",
+  '/forgot-password',
   RequestValidation.validateRequest(AuthValidation.forgotPasswordZodSchema),
-  AuthController.forgotPassword,
+  AuthController.forgotPassword
 );
 
 router.post(
-  "/reset-password",
+  '/reset-password',
   RequestValidation.validateRequest(AuthValidation.resetPasswordZodSchema),
-  AuthController.resetPassword,
+  AuthController.resetPassword
 );
 
 router.post(
-  "/refresh-token",
+  '/refresh-token',
   RequestValidation.validateRequest(AuthValidation.refreshTokenZodSchema),
-  AuthController.refreshToken,
+  AuthController.refreshToken
 );
 
 router.post(
-  "/verify-otp",
+  '/verify-otp',
   RequestValidation.validateRequest(AuthValidation.verifyOtpZodSchema),
-  AuthController.verifyOtpController,
+  AuthController.verifyOtpController
 );
+
+router.post('/logout', auth('USER', 'ADMIN'), AuthController.logout);
 
 export const AuthRoutes = router;
