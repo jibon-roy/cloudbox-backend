@@ -1,8 +1,8 @@
-import Redis, { RedisOptions } from "ioredis";
+import Redis, { RedisOptions } from 'ioredis';
 
 const redisOptions: RedisOptions = {
-  host: process.env.REDIS_HOST || "127.0.0.1",
-  port: parseInt(process.env.REDIS_PORT || "6379"),
+  host: process.env.REDIS_HOST || '127.0.0.1',
+  port: parseInt(process.env.REDIS_PORT || '6379'),
   password: process.env.REDIS_PASSWORD,
   //  🔹 রিট্রাই স্ট্রাটেজি: প্রথম ৫ বার কানেকশন ব্যর্থ হলে তাৎক্ষণিক পুনরায় চেষ্টা করবে,
   // 🔹 অন্যথায় times * 100 মিলিসেকেন্ড পর আবার চেষ্টা করবে, তবে সর্বোচ্চ 3000ms (৩ সেকেন্ড) এর বেশি
@@ -21,16 +21,16 @@ const redisOptions: RedisOptions = {
 export const redis = new Redis(redisOptions);
 
 // Redis কানেকশন ইভেন্ট হ্যান্ডেলিং
-redis.on("connect", () => {
-  console.log("✅ Redis connected");
+redis.on('connect', () => {
+  console.log('✅ Redis connected');
 });
 
-redis.on("error", (err) => {
-  console.log("❌ Redis error:", err?.message ?? err);
+redis.on('error', (err) => {
+  console.log('❌ Redis error:', err?.message ?? err);
 });
 
-redis.on("reconnecting", () => {
-  console.log("⏳ Redis reconnecting...");
+redis.on('reconnecting', () => {
+  console.log('⏳ Redis reconnecting...');
 });
 
 // Helper to create a dedicated Redis client (useful for pub/sub subscribers)
@@ -44,7 +44,7 @@ export async function ensureRedisConnected(timeoutMs = 5000) {
   while (Date.now() - start < timeoutMs) {
     try {
       const pong = await redis.ping();
-      if (pong === "PONG") return true;
+      if (pong === 'PONG') return true;
     } catch (err) {
       // ignore and retry
     }

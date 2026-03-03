@@ -37,41 +37,78 @@ const getFileSystem = catchAsync(async (req: Request, res: Response) => {
   const user = (req as any).user;
   if (!user || !user.id) return res.status(401).send({ message: 'Unauthorized' });
 
-  const { page = 1, limit = 50 } = req.query;
+  const {
+    page = 1,
+    limit = 50,
+    sortBy = 'modified',
+    sortOrder = 'desc',
+    filterType = 'all',
+    search,
+  } = req.query;
+
   const { skip, limit: pageLimit } = paginationHelpers.calculatePagination({
     page: Number(page),
     limit: Math.min(Number(limit), 100),
   });
 
-  // fetch all folders and files for user and build tree with pagination
-  const foldersList = await (
-    await import('../../../lib/prisma')
-  ).prisma.folder.findMany({
-    where: { userId: user.id, is_deleted: false },
-    skip,
-    take: pageLimit,
-    orderBy: { created_at: 'desc' },
-  });
+  // Build sorting object
+  const sortMap: Record<string, string> = {
+    name: 'name',
+    modified: 'updated_at',
+    size: 'size_bytes',
+    created: 'created_at',
+  };
+  const sortField = sortMap[String(sortBy)] || 'updated_at';
+  const order = String(sortOrder).toLowerCase() === 'asc' ? 'asc' : 'desc';
+  const orderBy: any = { [sortField]: order };
 
-  const filesList = await (
-    await import('../../../lib/prisma')
-  ).prisma.file.findMany({
-    where: { userId: user.id, is_deleted: false },
-    skip,
-    take: pageLimit,
-    orderBy: { created_at: 'desc' },
-  });
+  // Build search filter if search term provided
+  const searchTerm = search ? String(search) : '';
+  const baseWhereFolder: any = { userId: user.id, is_deleted: false };
+  const baseWhereFile: any = { userId: user.id, is_deleted: false };
+
+  if (searchTerm) {
+    baseWhereFolder.name = { contains: searchTerm, mode: 'insensitive' };
+    baseWhereFile.name = { contains: searchTerm, mode: 'insensitive' };
+  }
+
+  // fetch folders
+  let foldersList: any[] = [];
+  if (filterType === 'all' || filterType === 'folder') {
+    foldersList = await (
+      await import('../../../lib/prisma')
+    ).prisma.folder.findMany({
+      where: baseWhereFolder,
+      skip,
+      take: pageLimit,
+      orderBy,
+    });
+  }
+
+  // fetch files
+  let filesList: any[] = [];
+  if (filterType === 'all' || filterType === 'file') {
+    filesList = await (
+      await import('../../../lib/prisma')
+    ).prisma.file.findMany({
+      where: baseWhereFile,
+      skip,
+      take: pageLimit,
+      orderBy,
+    });
+  }
 
   // Get total counts for pagination
   const totalFolders = await prisma.folder.count({
-    where: { userId: user.id, is_deleted: false },
+    where: baseWhereFolder,
   });
   const totalFiles = await prisma.file.count({
-    where: { userId: user.id, is_deleted: false },
+    where: baseWhereFile,
   });
   const total = totalFolders + totalFiles;
 
   const downloadBase = buildDownloadBase(req);
+  const fileBase = `${req.protocol}://${req.get('host')}`;
 
   const map: Record<string, any> = {};
   foldersList.forEach(
@@ -94,6 +131,7 @@ const getFileSystem = catchAsync(async (req: Request, res: Response) => {
     const fileNode = {
       ...fi,
       downloadUrl: `${downloadBase}/download/file/${fi.id}`,
+      previewUrl: fi.storage_key ? `${fileBase}/uploads/${fi.storage_key}` : null,
     };
 
     if (fi.folderId && map[fi.folderId]) map[fi.folderId].files.push(fi);
@@ -107,6 +145,7 @@ const getFileSystem = catchAsync(async (req: Request, res: Response) => {
         map[fi.folderId].files[idx] = {
           ...map[fi.folderId].files[idx],
           downloadUrl: `${downloadBase}/download/file/${fi.id}`,
+          previewUrl: fi.storage_key ? `${fileBase}/uploads/${fi.storage_key}` : null,
         };
       }
     }
@@ -171,6 +210,7 @@ const getRecentFiles = catchAsync(async (req: Request, res: Response) => {
   });
 
   const downloadBase = buildDownloadBase(req);
+  const fileBase = `${req.protocol}://${req.get('host')}`;
 
   // Fetch recent files and folders
   const recentFolders = await prisma.folder.findMany({
@@ -199,6 +239,7 @@ const getRecentFiles = catchAsync(async (req: Request, res: Response) => {
       folderId: true,
       path: true,
       size_bytes: true,
+      storage_key: true,
       created_at: true,
       updated_at: true,
     },
@@ -226,6 +267,7 @@ const getRecentFiles = catchAsync(async (req: Request, res: Response) => {
       created_at: f.created_at,
       updated_at: f.updated_at,
       downloadUrl: `${downloadBase}/download/file/${f.id}`,
+      previewUrl: (f as any).storage_key ? `${fileBase}/uploads/${(f as any).storage_key}` : null,
     })),
   ]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())

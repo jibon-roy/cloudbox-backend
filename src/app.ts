@@ -15,13 +15,37 @@ import { sanitizeInput } from './app/middlewares/sanitizeInput';
 // Initialize app
 const app: Application = express();
 
+// Serve static uploads with open CORS FIRST - before any other middleware
+app.use(
+  '/uploads',
+  (req: Request, res: Response, next: NextFunction) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    res.header('Access-Control-Max-Age', '3600');
+    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  },
+  express.static('uploads')
+);
+
 // Cors Options
 const corsOptions = {
   origin: ['http://localhost:3000', 'http://localhost:3001'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   ALLOWED_HEADERS: ['Content-Type', 'Authorization', 'x-client-type', 'Accept', 'Origin'],
   credentials: true,
   exposedHeaders: ['Content-Range', 'Content-Length', 'Accept-Ranges', 'Connection', 'Upgrade'],
+};
+
+// CORS options for static file serving (more permissive)
+const staticCorsOptions = {
+  origin: true,
+  methods: ['GET'],
+  credentials: true,
 };
 
 // Middlewares
@@ -60,6 +84,8 @@ app.use(rateLimiter);
 app.use((req: Request, res: Response, next: NextFunction) => {
   // allow health and root endpoints without token
   const openPaths = ['/', '/api/v1/health'];
+  // Allow static file requests from uploads
+  if (req.path.startsWith('/uploads/')) return next();
   if (openPaths.includes(req.path)) return next();
 
   const token = req.get('X-API-Access-Token') || req.get('API-ACCESS-TOKEN');

@@ -44,7 +44,11 @@ const createUser = async (userData: IUser) => {
         const html = otpEmail(otp);
         await emailSender('Your verification code', existing.email, html);
       } catch (err) {
-        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to send verification email');
+        console.error('Email sending error:', err);
+        throw new ApiError(
+          httpStatus.INTERNAL_SERVER_ERROR,
+          `Failed to send verification email: ${err instanceof Error ? err.message : 'Unknown error'}`
+        );
       }
 
       return {
@@ -93,7 +97,11 @@ const createUser = async (userData: IUser) => {
     // Note: Redis is used to store the OTP with expiry.
   } catch (err) {
     // If email sending fails, surface a friendly error
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to send verification email');
+    console.error('Email sending error:', err);
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      `Failed to send verification email: ${err instanceof Error ? err.message : 'Unknown error'}`
+    );
   }
 
   return {
