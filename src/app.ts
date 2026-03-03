@@ -34,7 +34,13 @@ app.use(
 
 // Cors Options
 const corsOptions = {
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://168.231.120.95:4000'],
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://168.231.120.95:4000',
+    'https://inkaurabd.com',
+    'https://www.inkaurabd.com/',
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   ALLOWED_HEADERS: ['Content-Type', 'Authorization', 'x-client-type', 'Accept', 'Origin'],
   credentials: true,
