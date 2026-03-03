@@ -36,7 +36,7 @@ app.use(
 const corsOptions = {
   origin: [
     'http://localhost:3000',
-    'http://localhost:3001',
+    'http://localhost:4000',
     'http://168.231.120.95:4000',
     'https://inkaurabd.com',
     'https://www.inkaurabd.com/',
