@@ -1,21 +1,18 @@
-import { Request, Response } from "express";
-import catchAsync from "../../../shared/catchAsync";
-import sendResponse from "../../../shared/sendResponse";
-import httpStatus from "http-status";
-import { prisma } from "../../../lib/prisma";
+import { Request, Response } from 'express';
+import catchAsync from '../../../shared/catchAsync';
+import sendResponse from '../../../shared/sendResponse';
+import httpStatus from 'http-status';
+import { prisma } from '../../../lib/prisma';
 
-const getStartDateForPeriod = (
-  period: "weekly" | "monthly" | "yearly",
-  from?: string,
-) => {
+const getStartDateForPeriod = (period: 'weekly' | 'monthly' | 'yearly', from?: string) => {
   if (from) return new Date(from);
   const now = new Date();
   switch (period) {
-    case "weekly":
+    case 'weekly':
       return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    case "monthly":
+    case 'monthly':
       return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    case "yearly":
+    case 'yearly':
       return new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
     default:
       return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -24,8 +21,7 @@ const getStartDateForPeriod = (
 
 // Returns aggregated upload stats per user in the given period
 const userTrafficStats = catchAsync(async (req: Request, res: Response) => {
-  const period =
-    (req.params.period as "weekly" | "monthly" | "yearly") || "weekly";
+  const period = (req.params.period as 'weekly' | 'monthly' | 'yearly') || 'weekly';
   const from = req.query.from as string | undefined;
   const to = req.query.to as string | undefined;
 
@@ -34,7 +30,7 @@ const userTrafficStats = catchAsync(async (req: Request, res: Response) => {
 
   // group by userId, count files and sum size_bytes
   const rows: any = await prisma.file.groupBy({
-    by: ["userId"],
+    by: ['userId'],
     _count: { id: true },
     _sum: { size_bytes: true },
     where: {
@@ -57,10 +53,7 @@ const userTrafficStats = catchAsync(async (req: Request, res: Response) => {
   const result = rows.map((r: any) => ({
     user: userMap[r.userId] || { id: r.userId },
     totalFiles: r._count ? r._count.id : 0,
-    totalBytes:
-      r._sum && r._sum.size_bytes
-        ? BigInt(r._sum.size_bytes as any).toString()
-        : "0",
+    totalBytes: r._sum && r._sum.size_bytes ? BigInt(r._sum.size_bytes as any).toString() : '0',
   }));
 
   sendResponse(res, {
@@ -68,6 +61,91 @@ const userTrafficStats = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     message: `User traffic stats (${period}) fetched`,
     data: result,
+  });
+});
+
+// User traffic: registered user count by period (weekly, monthly, yearly) for recharts
+const userTrafficByPeriod = catchAsync(async (req: Request, res: Response) => {
+  const trafficData: Record<string, any> = {};
+
+  // Weekly: daily breakdown (7 days)
+  const weeklyData = [];
+  for (let i = 6; i >= 0; i--) {
+    const dayStart = new Date();
+    dayStart.setDate(dayStart.getDate() - i);
+    dayStart.setHours(0, 0, 0, 0);
+
+    const dayEnd = new Date(dayStart);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const count = await prisma.user.count({
+      where: {
+        created_at: { gte: dayStart, lte: dayEnd },
+      },
+    });
+
+    weeklyData.push({
+      date: dayStart.toISOString().split('T')[0],
+      registeredUsers: count,
+    });
+  }
+  trafficData.weekly = weeklyData;
+
+  // Monthly: weekly breakdown (30 days)
+  const monthlyData = [];
+  for (let i = 4; i >= 0; i--) {
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - i * 7);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    const count = await prisma.user.count({
+      where: {
+        created_at: { gte: weekStart, lte: weekEnd },
+      },
+    });
+
+    monthlyData.push({
+      week: `${weekStart.toISOString().split('T')[0]} to ${weekEnd.toISOString().split('T')[0]}`,
+      registeredUsers: count,
+    });
+  }
+  trafficData.monthly = monthlyData;
+
+  // Yearly: monthly breakdown (12 months)
+  const yearlyData = [];
+  for (let i = 11; i >= 0; i--) {
+    const monthStart = new Date();
+    monthStart.setMonth(monthStart.getMonth() - i);
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const monthEnd = new Date(monthStart);
+    monthEnd.setMonth(monthEnd.getMonth() + 1);
+    monthEnd.setDate(0);
+    monthEnd.setHours(23, 59, 59, 999);
+
+    const count = await prisma.user.count({
+      where: {
+        created_at: { gte: monthStart, lte: monthEnd },
+      },
+    });
+
+    yearlyData.push({
+      month: monthStart.toISOString().substring(0, 7),
+      registeredUsers: count,
+    });
+  }
+  trafficData.yearly = yearlyData;
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'User traffic data by period fetched',
+    data: trafficData,
   });
 });
 
@@ -87,22 +165,19 @@ const adminSummary = catchAsync(async (req: Request, res: Response) => {
   });
 
   // Sum income from successful billing transactions; optionally use date range on `paid_at` if provided
-  const billingWhere: any = { status: "SUCCESS" };
+  const billingWhere: any = { status: 'SUCCESS' };
   if (from || to) billingWhere.paid_at = whereDateRange;
 
   const sumRes: any = await prisma.billingTransaction.aggregate({
     _sum: { amount: true },
     where: billingWhere,
   });
-  const totalIncome =
-    sumRes && sumRes._sum && sumRes._sum.amount
-      ? Number(sumRes._sum.amount)
-      : 0;
+  const totalIncome = sumRes && sumRes._sum && sumRes._sum.amount ? Number(sumRes._sum.amount) : 0;
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: "Admin summary fetched",
+    message: 'Admin summary fetched',
     data: {
       totalUsers,
       totalTransactions,
@@ -114,6 +189,7 @@ const adminSummary = catchAsync(async (req: Request, res: Response) => {
 
 export const AdminController = {
   userTrafficStats,
+  userTrafficByPeriod,
   adminSummary,
 };
 

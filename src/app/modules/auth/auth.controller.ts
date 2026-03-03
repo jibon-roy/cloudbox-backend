@@ -16,6 +16,16 @@ const getMe = catchAsync(async (req: Request, res: Response): Promise<void> => {
 
   const result = await AuthService.getMe(user.id as string);
 
+  // Convert relative avatar_url to full URL
+  if (
+    (result as any).user &&
+    (result as any).user.avatar_url &&
+    !(result as any).user.avatar_url.startsWith('http')
+  ) {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    (result as any).user.avatar_url = `${baseUrl}${(result as any).user.avatar_url}`;
+  }
+
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
@@ -141,6 +151,16 @@ const login = catchAsync(async (req: Request, res: Response): Promise<void> => {
     // ignore cookie set failures
   }
 
+  // Convert relative avatar_url to full URL
+  if (
+    (result as any).user &&
+    (result as any).user.avatar_url &&
+    !(result as any).user.avatar_url.startsWith('http')
+  ) {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    (result as any).user.avatar_url = `${baseUrl}${(result as any).user.avatar_url}`;
+  }
+
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
@@ -153,6 +173,16 @@ const googleLogin = catchAsync(async (req: Request, res: Response): Promise<void
   const { idToken } = req.body;
 
   const result = await AuthService.googleLogin(idToken);
+
+  // Convert relative avatar_url to full URL
+  if (
+    (result as any).user &&
+    (result as any).user.avatar_url &&
+    !(result as any).user.avatar_url.startsWith('http')
+  ) {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    (result as any).user.avatar_url = `${baseUrl}${(result as any).user.avatar_url}`;
+  }
 
   const callback = process.env.GOOGLE_CALLBACK_URL || config.google?.callbackUrl;
   if (callback) {
@@ -253,6 +283,16 @@ const googleCallback = catchAsync(async (req: Request, res: Response) => {
 
   const result = await AuthService.googleLogin(idToken);
 
+  // Convert relative avatar_url to full URL
+  if (
+    (result as any).user &&
+    (result as any).user.avatar_url &&
+    !(result as any).user.avatar_url.startsWith('http')
+  ) {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    (result as any).user.avatar_url = `${baseUrl}${(result as any).user.avatar_url}`;
+  }
+
   // set cookies
   try {
     const accessToken = (result as any).accessToken;
@@ -306,6 +346,16 @@ const verifyOtpController = catchAsync(async (req: Request, res: Response): Prom
 
   // mark user's email as verified and return token
   const result = await AuthService.verifyOtpAndLogin(email);
+
+  // Convert relative avatar_url to full URL
+  if (
+    (result as any).user &&
+    (result as any).user.avatar_url &&
+    !(result as any).user.avatar_url.startsWith('http')
+  ) {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    (result as any).user.avatar_url = `${baseUrl}${(result as any).user.avatar_url}`;
+  }
 
   // set cookies for tokens if present
   try {

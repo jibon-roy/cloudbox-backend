@@ -60,7 +60,11 @@ const getFileSystem = catchAsync(async (req: Request, res: Response) => {
   };
   const sortField = sortMap[String(sortBy)] || 'updated_at';
   const order = String(sortOrder).toLowerCase() === 'asc' ? 'asc' : 'desc';
-  const orderBy: any = { [sortField]: order };
+
+  // For folders, avoid sorting by size_bytes (they don't have this field)
+  const folderSortField = sortField === 'size_bytes' ? 'created_at' : sortField;
+  const folderOrderBy: any = { [folderSortField]: order };
+  const fileOrderBy: any = { [sortField]: order };
 
   // Build search filter if search term provided
   const searchTerm = search ? String(search) : '';
@@ -81,7 +85,7 @@ const getFileSystem = catchAsync(async (req: Request, res: Response) => {
       where: baseWhereFolder,
       skip,
       take: pageLimit,
-      orderBy,
+      orderBy: folderOrderBy,
     });
   }
 
@@ -94,7 +98,7 @@ const getFileSystem = catchAsync(async (req: Request, res: Response) => {
       where: baseWhereFile,
       skip,
       take: pageLimit,
-      orderBy,
+      orderBy: fileOrderBy,
     });
   }
 
