@@ -1,13 +1,39 @@
-import { prisma } from "../../../lib/prisma";
-import ApiError from "../../../errors/apiError";
-import httpStatus from "http-status";
+import { prisma } from '../../../lib/prisma';
+import ApiError from '../../../errors/apiError';
+import httpStatus from 'http-status';
+
+// Map standard MIME types to FileMime enum values
+const mimeTypeMap: Record<string, string> = {
+  'image/jpeg': 'IMAGE_JPEG',
+  'image/png': 'IMAGE_PNG',
+  'image/gif': 'IMAGE_GIF',
+  'image/bmp': 'IMAGE_BMP',
+  'image/tiff': 'IMAGE_TIFF',
+  'image/webp': 'IMAGE_WEBP',
+  'image/svg+xml': 'IMAGE_SVG',
+  'audio/mpeg': 'AUDIO_MPEG',
+  'audio/wav': 'AUDIO_WAV',
+  'audio/ogg': 'AUDIO_OGG',
+  'video/mp4': 'VIDEO_MP4',
+  'video/quicktime': 'VIDEO_QUICKTIME',
+  'video/webm': 'VIDEO_WEBM',
+  'video/x-msvideo': 'VIDEO_X_MSVIDEO',
+  'application/pdf': 'APPLICATION_PDF',
+  'application/zip': 'APPLICATION_ZIP',
+  'application/x-7z-compressed': 'APPLICATION_7Z',
+  'application/x-rar-compressed': 'APPLICATION_RAR',
+  'application/msword': 'APPLICATION_DOC',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'APPLICATION_DOCX',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'APPLICATION_XLSX',
+  'text/csv': 'TEXT_CSV',
+  'application/vnd.ms-excel': 'APPLICATION_XLS',
+};
 
 const ensureActiveSubscription = async (userId: string) => {
   const active = await prisma.userSubscription.findFirst({
     where: { userId, is_active: true },
   });
-  if (!active)
-    throw new ApiError(httpStatus.PAYMENT_REQUIRED, "No active subscription");
+  if (!active) throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'No active subscription');
   return active;
 };
 
@@ -21,7 +47,7 @@ export const FileService = {
       size_bytes: bigint;
       path: string;
       storage_key?: string;
-    },
+    }
   ) => {
     const active = await ensureActiveSubscription(userId);
 
@@ -29,44 +55,23 @@ export const FileService = {
     const pkg = await prisma.subscriptionPackage.findUnique({
       where: { id: active.packageId },
     });
-    if (!pkg)
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        "Subscription package not found",
-      );
+    if (!pkg) throw new ApiError(httpStatus.BAD_REQUEST, 'Subscription package not found');
 
-    if (
-      pkg.max_file_size_mb &&
-      Number(data.size_bytes) > pkg.max_file_size_mb * 1024 * 1024
-    )
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        "File exceeds max file size for your package",
-      );
+    if (pkg.max_file_size_mb && Number(data.size_bytes) > pkg.max_file_size_mb * 1024 * 1024)
+      throw new ApiError(httpStatus.BAD_REQUEST, 'File exceeds max file size for your package');
 
     // check storage usage
     const usage = await prisma.storageUsage.findUnique({ where: { userId } });
-    const currentBytes = usage
-      ? BigInt(usage.total_storage_bytes.toString())
-      : BigInt(0);
+    const currentBytes = usage ? BigInt(usage.total_storage_bytes.toString()) : BigInt(0);
     const newTotal = currentBytes + data.size_bytes;
-    if (
-      pkg.max_storage_mb &&
-      newTotal > BigInt(pkg.max_storage_mb) * BigInt(1024 * 1024)
-    )
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        "Exceeds max storage for your package",
-      );
+    if (pkg.max_storage_mb && newTotal > BigInt(pkg.max_storage_mb) * BigInt(1024 * 1024))
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Exceeds max storage for your package');
 
     // check total file limit
     if ((pkg as any).total_file_limit) {
       const totalFiles = usage ? Number(usage.total_files) : 0;
       if (totalFiles + 1 > Number((pkg as any).total_file_limit))
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          "Total file limit reached for your package",
-        );
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Total file limit reached for your package');
     }
 
     // check files per folder
@@ -77,7 +82,7 @@ export const FileService = {
       if (filesInFolder + 1 > Number((pkg as any).files_per_folder))
         throw new ApiError(
           httpStatus.BAD_REQUEST,
-          "Files per folder limit exceeded for your package",
+          'Files per folder limit exceeded for your package'
         );
     }
 
@@ -86,12 +91,10 @@ export const FileService = {
       where: { subscriptionPackageId: pkg.id },
     });
     if (allowed.length > 0) {
-      const ok = allowed.some((a) => a.mime_type === data.mime_type);
-      if (!ok)
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          "MIME type not allowed by your package",
-        );
+      // Convert standard MIME type to enum value for comparison
+      const enumMimeType = mimeTypeMap[data.mime_type];
+      const ok = allowed.some((a) => a.mime_type === enumMimeType);
+      if (!ok) throw new ApiError(httpStatus.BAD_REQUEST, 'MIME type not allowed by your package');
     }
 
     // create file and update storage usage in transaction
@@ -128,31 +131,20 @@ export const FileService = {
   replaceFile: async (
     userId: string,
     fileId: string,
-    newData: { mime_type: string; size_bytes: bigint; storage_key?: string },
+    newData: { mime_type: string; size_bytes: bigint; storage_key?: string }
   ) => {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
-    if (!file) throw new ApiError(httpStatus.NOT_FOUND, "File not found");
-    if (file.userId !== userId)
-      throw new ApiError(httpStatus.FORBIDDEN, "Not owner");
+    if (!file) throw new ApiError(httpStatus.NOT_FOUND, 'File not found');
+    if (file.userId !== userId) throw new ApiError(httpStatus.FORBIDDEN, 'Not owner');
 
     const active = await ensureActiveSubscription(userId);
     const pkg = await prisma.subscriptionPackage.findUnique({
       where: { id: active.packageId },
     });
-    if (!pkg)
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        "Subscription package not found",
-      );
+    if (!pkg) throw new ApiError(httpStatus.BAD_REQUEST, 'Subscription package not found');
 
-    if (
-      pkg.max_file_size_mb &&
-      Number(newData.size_bytes) > pkg.max_file_size_mb * 1024 * 1024
-    )
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        "File exceeds max file size for your package",
-      );
+    if (pkg.max_file_size_mb && Number(newData.size_bytes) > pkg.max_file_size_mb * 1024 * 1024)
+      throw new ApiError(httpStatus.BAD_REQUEST, 'File exceeds max file size for your package');
 
     // adjust storage usage by difference
     const oldSize = BigInt(file.size_bytes.toString());
@@ -178,9 +170,8 @@ export const FileService = {
 
   deleteFile: async (userId: string, fileId: string) => {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
-    if (!file) throw new ApiError(httpStatus.NOT_FOUND, "File not found");
-    if (file.userId !== userId)
-      throw new ApiError(httpStatus.FORBIDDEN, "Not owner");
+    if (!file) throw new ApiError(httpStatus.NOT_FOUND, 'File not found');
+    if (file.userId !== userId) throw new ApiError(httpStatus.FORBIDDEN, 'Not owner');
 
     await prisma.$transaction([
       prisma.file.update({ where: { id: fileId }, data: { is_deleted: true } }),
@@ -201,38 +192,30 @@ export const FileService = {
     if (filters.folderId) where.folderId = filters.folderId;
     const items = await prisma.file.findMany({
       where,
-      orderBy: { created_at: "desc" },
+      orderBy: { created_at: 'desc' },
     });
     return items;
   },
 
   getFileById: async (userId: string, fileId: string) => {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
-    if (!file) throw new ApiError(httpStatus.NOT_FOUND, "File not found");
+    if (!file) throw new ApiError(httpStatus.NOT_FOUND, 'File not found');
     if (file.userId === userId) return file;
     // TODO: check share permissions (folder/file shares) - for now deny
-    throw new ApiError(
-      httpStatus.FORBIDDEN,
-      "Not authorized to access this file",
-    );
+    throw new ApiError(httpStatus.FORBIDDEN, 'Not authorized to access this file');
   },
 
-  moveFile: async (
-    userId: string,
-    fileId: string,
-    targetFolderId: string | null,
-  ) => {
+  moveFile: async (userId: string, fileId: string, targetFolderId: string | null) => {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
-    if (!file) throw new ApiError(httpStatus.NOT_FOUND, "File not found");
-    if (file.userId !== userId)
-      throw new ApiError(httpStatus.FORBIDDEN, "Not owner");
+    if (!file) throw new ApiError(httpStatus.NOT_FOUND, 'File not found');
+    if (file.userId !== userId) throw new ApiError(httpStatus.FORBIDDEN, 'Not owner');
 
     if (targetFolderId) {
       const folder = await prisma.folder.findUnique({
         where: { id: targetFolderId },
       });
       if (!folder || folder.userId !== userId)
-        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid target folder");
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid target folder');
     }
 
     // update path (simple approach: keep same name, recompute path)
@@ -251,41 +234,27 @@ export const FileService = {
     return updated;
   },
 
-  copyFile: async (
-    userId: string,
-    fileId: string,
-    targetFolderId: string | null,
-  ) => {
+  copyFile: async (userId: string, fileId: string, targetFolderId: string | null) => {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
-    if (!file) throw new ApiError(httpStatus.NOT_FOUND, "File not found");
-    if (file.userId !== userId)
-      throw new ApiError(httpStatus.FORBIDDEN, "Not owner");
+    if (!file) throw new ApiError(httpStatus.NOT_FOUND, 'File not found');
+    if (file.userId !== userId) throw new ApiError(httpStatus.FORBIDDEN, 'Not owner');
 
     // create duplicate row; storage_key should be duplicated or new depending on storage backend
-    const newStorageKey = file.storage_key
-      ? `${file.storage_key}_copy_${Date.now()}`
-      : null;
+    const newStorageKey = file.storage_key ? `${file.storage_key}_copy_${Date.now()}` : null;
 
     // check package limits before copying
     const active = await ensureActiveSubscription(userId);
     const pkg = await prisma.subscriptionPackage.findUnique({
       where: { id: active.packageId },
     });
-    if (!pkg)
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        "Subscription package not found",
-      );
+    if (!pkg) throw new ApiError(httpStatus.BAD_REQUEST, 'Subscription package not found');
 
     const usage = await prisma.storageUsage.findUnique({ where: { userId } });
     // total file limit
     if ((pkg as any).total_file_limit) {
       const totalFiles = usage ? Number(usage.total_files) : 0;
       if (totalFiles + 1 > Number((pkg as any).total_file_limit))
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          "Total file limit reached for your package",
-        );
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Total file limit reached for your package');
     }
     // files per folder
     if ((pkg as any).files_per_folder && targetFolderId) {
@@ -295,7 +264,7 @@ export const FileService = {
       if (filesInFolder + 1 > Number((pkg as any).files_per_folder))
         throw new ApiError(
           httpStatus.BAD_REQUEST,
-          "Files per folder limit exceeded for your package",
+          'Files per folder limit exceeded for your package'
         );
     }
 
