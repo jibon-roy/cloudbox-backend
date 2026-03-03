@@ -1,13 +1,13 @@
-import { Role } from "@prisma/client";
+import { Role } from '@prisma/client';
 
-import bcrypt from "bcryptjs";
-import { prisma } from "../lib/prisma";
+import bcrypt from 'bcryptjs';
+import { prisma } from '../lib/prisma';
 
 export const initiateAdmin = async () => {
   const payload = {
-    name: "Super Admin",
-    email: "superadmin@gmail.com",
-    password: "12345678",
+    name: 'Super Admin',
+    email: 'superadmin@gmail.com',
+    password: '12345678',
     role: Role.ADMIN,
     verified_at: new Date(),
   };
