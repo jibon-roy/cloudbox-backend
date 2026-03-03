@@ -11,7 +11,7 @@ router.get('/me', auth('USER', 'ADMIN'), UserController.getMe);
 // Update profile (multipart/form-data with optional 'avatar' file)
 router.put(
   '/profile',
-  auth('USER'),
+  auth('USER', 'ADMIN'),
   imageUploader.single('avatar'),
   RequestValidation.validateRequest(UserValidation.updateProfileZodSchema),
   UserController.updateProfile

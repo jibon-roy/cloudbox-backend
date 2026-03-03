@@ -59,15 +59,26 @@ export const SubscriptionService = {
   getAllPackages: async () => {
     const pkgs = await prisma.subscriptionPackage.findMany({
       where: { deleted_at: null, is_active: true },
+      include: { allowedFileTypes: true },
     });
-    return pkgs;
+    return pkgs.map((pkg: any) => ({
+      ...pkg,
+      mime_types: pkg.allowedFileTypes.map((ft: any) => ft.mime_type),
+      allowedFileTypes: undefined,
+    }));
   },
 
   getAllPackagesAdmin: async () => {
     const pkgs = await prisma.subscriptionPackage.findMany({
+      where: { deleted_at: null },
+      include: { allowedFileTypes: true },
       orderBy: { created_at: 'desc' },
     });
-    return pkgs;
+    return pkgs.map((pkg: any) => ({
+      ...pkg,
+      mime_types: pkg.allowedFileTypes.map((ft: any) => ft.mime_type),
+      allowedFileTypes: undefined,
+    }));
   },
 
   getPackageById: async (id: string) => {

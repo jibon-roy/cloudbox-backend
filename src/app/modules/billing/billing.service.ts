@@ -1,7 +1,7 @@
-import { prisma } from "../../../lib/prisma";
-import ApiError from "../../../errors/apiError";
-import httpStatus from "http-status";
-import { Prisma } from "@prisma/client";
+import { prisma } from '../../../lib/prisma';
+import ApiError from '../../../errors/apiError';
+import httpStatus from 'http-status';
+import { Prisma } from '@prisma/client';
 
 export const BillingService = {
   getAllBillings: async (filters: any) => {
@@ -19,8 +19,16 @@ export const BillingService = {
     const [items, total] = await Promise.all([
       prisma.billingTransaction.findMany({
         where,
-        include: { user: { select: { id: true, email: true, name: true } } },
-        orderBy: { created_at: "desc" },
+        include: {
+          user: { select: { id: true, email: true, name: true } },
+          subscription: {
+            select: {
+              id: true,
+              package: { select: { id: true, name: true } },
+            },
+          },
+        },
+        orderBy: { created_at: 'desc' },
         skip,
         take: Number(limit),
       }),
@@ -44,7 +52,7 @@ export const BillingService = {
     const [items, total] = await Promise.all([
       prisma.billingTransaction.findMany({
         where,
-        orderBy: { created_at: "desc" },
+        orderBy: { created_at: 'desc' },
         skip,
         take: Number(limit),
       }),
@@ -55,9 +63,9 @@ export const BillingService = {
   },
 
   changeBillingStatus: async (id: string, status: string) => {
-    const allowed = ["PENDING", "SUCCESS", "FAILED"];
+    const allowed = ['PENDING', 'SUCCESS', 'FAILED'];
     if (!allowed.includes(status))
-      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid billing status");
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid billing status');
 
     const billing = await prisma.billingTransaction.update({
       where: { id },
@@ -66,7 +74,7 @@ export const BillingService = {
 
     // If billing marked SUCCESS and no subscription linked, create subscription
     // If billing has subscriptionId and status changed to SUCCESS, ensure subscription is active
-    if (status === "SUCCESS" && billing.subscriptionId) {
+    if (status === 'SUCCESS' && billing.subscriptionId) {
       try {
         await prisma.userSubscription.update({
           where: { id: billing.subscriptionId },
@@ -83,13 +91,13 @@ export const BillingService = {
     const billing = await prisma.billingTransaction.findFirst({
       where: { reference },
     });
-    if (!billing) throw new ApiError(httpStatus.NOT_FOUND, "Billing not found");
+    if (!billing) throw new ApiError(httpStatus.NOT_FOUND, 'Billing not found');
 
-    if (billing.status === "SUCCESS") return { billing };
+    if (billing.status === 'SUCCESS') return { billing };
 
     const updated = await prisma.billingTransaction.update({
       where: { id: billing.id },
-      data: { status: "SUCCESS", paid_at: new Date() },
+      data: { status: 'SUCCESS', paid_at: new Date() },
     });
 
     // If billing is linked to a subscription record, activate it. If not, we cannot create a subscription here because packageId is unknown.
@@ -117,7 +125,7 @@ export const BillingService = {
           user: { select: { id: true, email: true, name: true } },
           package: true,
         },
-        orderBy: { created_at: "desc" },
+        orderBy: { created_at: 'desc' },
         skip,
         take: Number(limit),
       }),
