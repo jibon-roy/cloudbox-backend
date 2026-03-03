@@ -187,10 +187,55 @@ const adminSummary = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Contact form submission
+const submitContactForm = catchAsync(async (req: Request, res: Response) => {
+  const { fullName, workEmail, company, phone, message } = req.body;
+
+  if (!fullName || !workEmail || !message) {
+    sendResponse(res, {
+      success: false,
+      statusCode: httpStatus.BAD_REQUEST,
+      message: 'Full name, work email, and message are required',
+      data: null,
+    });
+    return;
+  }
+
+  // Send email to admin
+  const emailSender = (await import('../../../helpers/email_sender/emailSender')).default;
+  const config = (await import('../../../config')).default;
+
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333;">New Contact Form Submission</h2>
+      <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px;">
+        <p><strong>Full Name:</strong> ${fullName}</p>
+        <p><strong>Work Email:</strong> ${workEmail}</p>
+        <p><strong>Company:</strong> ${company || 'Not provided'}</p>
+        <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
+        <hr style="border: 1px solid #ddd; margin: 20px 0;">
+        <p><strong>Message:</strong></p>
+        <p style="white-space: pre-wrap;">${message}</p>
+      </div>
+      <p style="color: #666; font-size: 12px; margin-top: 20px;">This email was sent from CloudBox contact form.</p>
+    </div>
+  `;
+
+  await emailSender(`New Contact Form: ${fullName}`, config.adminEmail, emailHtml);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Contact form submitted successfully. We will get back to you within 24 hours.',
+    data: { submitted: true },
+  });
+});
+
 export const AdminController = {
   userTrafficStats,
   userTrafficByPeriod,
   adminSummary,
+  submitContactForm,
 };
 
 export default AdminController;

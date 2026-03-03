@@ -13,4 +13,7 @@ router.get('/user-traffic', auth('ADMIN'), AdminController.userTrafficByPeriod);
 // Summary endpoint: total users, transactions, subscribers, income
 router.get('/summary', auth('ADMIN'), AdminController.adminSummary);
 
+// Contact form submission (public endpoint)
+router.post('/contact', AdminController.submitContactForm);
+
 export const AdminRoutes = router;

@@ -1,29 +1,30 @@
-import dotenv from "dotenv";
-import path from "path";
+import dotenv from 'dotenv';
+import path from 'path';
 
 dotenv.config({
-  path: path.join(process.cwd(), ".env"),
+  path: path.join(process.cwd(), '.env'),
 });
 
 export default {
   env: process.env.NODE_ENV,
   port: process.env.PORT || 8008,
-  password_salt: process.env.PASSWORD_SALT || "12",
+  password_salt: process.env.PASSWORD_SALT || '12',
   emailSender: {
-    email: process.env.EMAIL_SENDER_EMAIL || "",
-    app_pass: process.env.EMAIL_SENDER_APP_PASS || "",
+    email: process.env.EMAIL_SENDER_EMAIL || '',
+    app_pass: process.env.EMAIL_SENDER_APP_PASS || '',
   },
+  adminEmail: process.env.ADMIN_EMAIL || process.env.EMAIL_SENDER_EMAIL || '',
   google: {
-    clientId: process.env.GOOGLE_CLIENT_ID || "",
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    callbackUrl: process.env.GOOGLE_CALLBACK_URL || "",
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    callbackUrl: process.env.GOOGLE_CALLBACK_URL || '',
   },
-  apiAccessToken: process.env.API_ACCESS_TOKEN || "",
+  apiAccessToken: process.env.API_ACCESS_TOKEN || '',
   rateLimit: {
     windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
     maxRequests: Number(process.env.RATE_LIMIT_MAX) || 120,
   },
-  frontend_url: process.env.FRONTEND_URL || "http://localhost:3000",
-  stripe_secret_key: process.env.STRIPE_SECRET_KEY || "",
-  stripe_publishable_key: process.env.STRIPE_PUBLISHABLE_KEY || "",
+  frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000',
+  stripe_secret_key: process.env.STRIPE_SECRET_KEY || '',
+  stripe_publishable_key: process.env.STRIPE_PUBLISHABLE_KEY || '',
 };
